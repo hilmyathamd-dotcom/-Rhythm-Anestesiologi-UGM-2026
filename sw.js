@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'anes-tools-2026-11-08d';
+const VERSION = 'anes-tools-2026-11-09a';
 const FILES = [
   './', './index.html', './shared.js', './manifest.json', './icon-192.png', './icon-512.png',
   './1neopad.html', './3vasoactive.html', './5BGA.html', './7resident.html', './8sanitizer.html'
