@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Anesthesia Tools Suite - dokteratha</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --light: #ecf0f1;
+            --border: #bdc3c7;
+            --secondary-text: #e67e22;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #f4f7f6;
+            color: #333;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .brand {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            text-align: center;
+            display: block;
+            margin-top: -5px;
+            margin-bottom: 15px;
+        }
+        
+        .nav-grid {
+            display: grid;
+            /* Restricted to maximum 2 buttons per screen width */
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .tool-btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .tool-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .tool-btn.active {
+            background-color: var(--accent);
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.1);
+        }
+
+        .iframe-wrapper {
+            display: none;
+            animation: slideDown 0.3s ease-out;
+            margin-top: 5px;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+        .iframe-wrapper.show {
+            display: block;
+        }
+        .iframe-wrapper h3 {
+            text-align: center;
+            color: var(--secondary-text);
+            margin-bottom: 5px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        iframe {
+            width: 100%;
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+        .disclaimer {
+            font-size: 0.72rem;
+            color: #7f8c8d;
+            text-align: center;
+            line-height: 1.4;
+            padding: 10px 8px 4px;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Anesthesia Tools UGM</h1>
+    <span class="brand">Rhythm Anestesi</span>
+
+    <div class="nav-grid">
+        <button class="tool-btn" onclick="toggleFrame('neopad', this)">Neopad</button>
+        <button class="tool-btn" onclick="toggleFrame('maintenance', this)">Maintenance</button>
+        <button class="tool-btn" onclick="toggleFrame('vaso', this)">Vasoactive</button>
+        <button class="tool-btn" onclick="toggleFrame('ews', this)">EWS</button>
+        <button class="tool-btn" onclick="toggleFrame('bga', this)">BGA Calc</button>
+        <button class="tool-btn" onclick="toggleFrame('dilution', this)">Dilution</button>
+        <button class="tool-btn" onclick="toggleFrame('resident', this)">Resident Log</button>
+        <button class="tool-btn" onclick="toggleFrame('sanitizer', this)">Sanitizer</button>
+    </div>
+
+    <div id="frame-neopad" class="iframe-wrapper">
+        <h3>Pediatric Calculator</h3>
+        <iframe src="1neopad.html" style="height:1600px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-maintenance" class="iframe-wrapper">
+        <h3>Fluid Maintenance</h3>
+        <iframe src="2maintenance.html" style="height:1200px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-vaso" class="iframe-wrapper">
+        <h3>Vasoactive Calculator</h3>
+        <iframe src="3vasoactive.html" style="height:1200px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-ews" class="iframe-wrapper">
+        <h3>Early Warning Score</h3>
+        <iframe src="4EWS.html" style="height:1800px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-bga" class="iframe-wrapper">
+        <h3>Blood Gas Analysis</h3>
+        <iframe src="5BGA.html" style="height:1200px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-dilution" class="iframe-wrapper">
+        <h3>Dilution Calculator</h3>
+        <iframe src="6dilution.html" style="height:1200px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-resident" class="iframe-wrapper">
+        <h3>Resident Log & Database</h3>
+        <iframe src="7resident.html" style="height:1000px;" loading="lazy"></iframe>
+    </div>
+
+    <div id="frame-sanitizer" class="iframe-wrapper">
+        <h3>Text Sanitizer</h3>
+        <iframe src="8sanitizer.html" style="height:800px;" loading="lazy"></iframe>
+    </div>
+
+    <div class="disclaimer">
+        Alat bantu hitung untuk tenaga medis. Hasil wajib diverifikasi dengan penilaian klinis, protokol institusi, dan referensi terkini.<br>
+        Versi 2026.11.08
+    </div>
+
+</div>
+
+<script>
+    // Size each iframe to its content (works when served over http/https, same origin).
+    // If the browser blocks access (e.g. opened as a local file), the fixed height stays as fallback.
+    function fitFrame(iframe) {
+        try {
+            const doc = iframe.contentDocument;
+            if (!doc || !doc.body) return;
+            const resize = () => {
+                const cs = iframe.contentWindow.getComputedStyle(doc.body);
+                const h = doc.body.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+                if (h > 50) iframe.style.height = Math.ceil(h) + 'px';
+            };
+            resize();
+            if (iframe.contentWindow.ResizeObserver) new iframe.contentWindow.ResizeObserver(resize).observe(doc.body);
+            // details/summary toggles and dynamic content
+            doc.addEventListener('toggle', resize, true);
+        } catch (e) { /* cross-origin or file:// — keep fixed height */ }
+    }
+    document.querySelectorAll('iframe').forEach(f => {
+        f.addEventListener('load', () => fitFrame(f));
+        if (f.contentDocument && f.contentDocument.readyState === 'complete') fitFrame(f);
+    });
+
+    // Offline support
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    function toggleFrame(name, btnElement) {
+        const targetId = 'frame-' + name;
+        const targetEl = document.getElementById(targetId);
+        const isCurrentlyOpen = targetEl.classList.contains('show');
+
+        document.querySelectorAll('.iframe-wrapper').forEach(div => {
+            div.classList.remove('show');
+        });
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        if (!isCurrentlyOpen) {
+            targetEl.classList.add('show');
+            btnElement.classList.add('active');
+            
+            setTimeout(() => {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }
+</script>
+
+</body>
+</html>
+

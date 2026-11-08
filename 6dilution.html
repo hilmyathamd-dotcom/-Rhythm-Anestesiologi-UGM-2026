@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Expert Fluid Dilution Calculator</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #8e44ad;
+            --light: #ecf0f1;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #c0392b;
+            --math-bg: #f8f9fa;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 5px;
+            background-color: #f0f2f5;
+            color: #333;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin: 0 0 10px 0;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 8px;
+            font-size: 1.4rem;
+        }
+        
+        /* Input Section */
+        .section-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .calc-btn {
+            background-color: var(--accent);
+            color: white;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.2s;
+        }
+        .calc-btn:hover { background-color: #732d91; }
+
+        /* Input Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        .input-wrapper { display: flex; flex-direction: column; }
+        .input-wrapper label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #576574;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+        
+        select, input[type="number"], input[type="text"] {
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            height: 32px;
+        }
+
+        /* Radio Group for Source */
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            height: 32px;
+            font-size: 0.85rem;
+        }
+        .radio-group label {
+            color: #333;
+            text-transform: none;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+        .radio-group input {
+            width: auto;
+            height: auto;
+            margin-right: 5px;
+        }
+
+        /* Results */
+        .interpretation-box {
+            background: #f3e5f5;
+            border-left: 4px solid var(--accent);
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .interpretation-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .interpretation-main {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+        .interpretation-sub {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0;
+            margin-bottom: 10px;
+            background: white;
+            overflow: hidden;
+        }
+        .panel-header {
+            background: #f1f2f6;
+            padding: 6px 10px;
+            font-weight: 700;
+            color: #57606f;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+        .panel-content { padding: 10px; overflow-x: auto; }
+
+        /* Math Display */
+        .math-block {
+            background-color: var(--math-bg);
+            border: 1px solid #e9ecef;
+            border-radius: 3px;
+            padding: 8px;
+            margin-bottom: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+        .math-title {
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 2px;
+            display: block;
+            font-size: 0.8em;
+        }
+        .math-eq { color: #555; display: block; margin-bottom: 2px; font-style: italic;}
+        .math-res { font-weight: bold; color: #333; }
+
+        /* Table Styles */
+        table.comp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        table.comp-table th {
+            background-color: var(--primary);
+            color: white;
+            text-align: left;
+            padding: 5px 8px;
+            font-size: 0.75rem;
+        }
+        table.comp-table td {
+            border-bottom: 1px solid #ddd;
+            padding: 4px 8px;
+            font-family: monospace;
+        }
+        table.comp-table tr:last-child td { border-bottom: none; }
+        
+        .unit-tag { font-size: 0.7em; color: #7f8c8d; font-weight: normal; }
+
+        /* Footer Calculation Log */
+        #calculation_footer {
+            font-size: 0.4rem;
+            opacity: 0.3;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: #000;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        
+        .hidden { display: none; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Clinical Fluid Dilution</h1>
+
+    <div class="section-header">1. Configuration</div>
+    <div class="input-grid">
+        
+        <div class="input-wrapper" style="grid-column: 1 / -1;">
+            <label>1. Initial Fluid Source</label>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="source_type" value="preset" checked onchange="toggleSource()"> 
+                    Database List
+                </label>
+                <label>
+                    <input type="radio" name="source_type" value="manual" onchange="toggleSource()"> 
+                    Manual Input
+                </label>
+            </div>
+        </div>
+
+        <div class="input-wrapper" id="grp_preset">
+            <label>Select Fluid (Concentrate)</label>
+            <select id="sel_fluid1" onchange="updateUnits()"></select>
+        </div>
+
+        <div class="input-wrapper hidden" id="grp_manual">
+            <label>Manual Concentration (mcg/ml)</label>
+            <input type="number" id="in_manual_conc" placeholder="e.g. 4000">
+        </div>
+
+        <div class="input-wrapper">
+            <label>2. Solvent / Dilutor</label>
+            <select id="sel_fluid2" onchange="updateUnits()"></select>
+        </div>
+
+        <div class="input-wrapper" id="grp_param_type">
+            <label>Target Parameter</label>
+            <select id="sel_target_type" onchange="updateUnits()">
+                <option value="glucose">Glucose (Dextrose)</option>
+                <option value="na">Sodium (Na+)</option>
+                <option value="albumin">Albumin</option>
+                <option value="osmo">Osmolarity</option>
+            </select>
+        </div>
+        
+        <div class="input-wrapper hidden" id="grp_param_manual_label">
+             <label>Target Parameter</label>
+             <input type="text" value="Custom (mcg/ml)" disabled style="background:#eee; color:#777;">
+        </div>
+
+        <div class="input-wrapper">
+            <label>Target Value <span id="target_unit_display" class="unit-tag"></span></label>
+            <input type="number" id="in_target_val" placeholder="Value" step="0.1">
+        </div>
+
+        <div class="input-wrapper">
+            <label>Desired Total Vol (mL)</label>
+            <input type="number" id="in_total_vol" value="500" step="50">
+        </div>
+    </div>
+    
+    <button class="calc-btn" onclick="calculate()">Calculate Mix</button>
+
+    <div class="section-header">2. Result</div>
+    
+    <div class="interpretation-box">
+        <div class="interpretation-title">Preparation Instructions</div>
+        <div id="result_main" class="interpretation-main">Waiting for input...</div>
+        <div id="result_sub" class="interpretation-sub"></div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">Step-by-Step Calculation (Alligation Method)</div>
+        <div class="panel-content" id="math_output">
+            <div style="color:#999; font-style:italic; font-size: 0.85rem;">Calculation steps will appear here.</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">Final Solution Composition</div>
+        <div class="panel-content">
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Concentration</th>
+                        <th>Total Mass (mg)</th>
+                    </tr>
+                </thead>
+                <tbody id="composition_body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="calculation_footer"></div>
+</div>
+
+<script>
+    // --- Database ---
+    const fluids = [
+        { name: "Sterile Water", osm: 0, na: 0, cl: 0, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "Normal Saline (0.9%)", osm: 308, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "D5 Normal Saline", osm: 586, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 50, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "D5 Water (D5W)", osm: 278, na: 0, cl: 0, k: 0, ca: 0, lac: 0, gluc: 50, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "D10 Water (D10W)", osm: 556, na: 0, cl: 0, k: 0, ca: 0, lac: 0, gluc: 100, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "D40 Water (D40W)", osm: 2220, na: 0, cl: 0, k: 0, ca: 0, lac: 0, gluc: 400, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "D5 0.225% NaCl", osm: 355, na: 38, cl: 38, k: 0, ca: 0, lac: 0, gluc: 50, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "D5 0.45% NaCl", osm: 432, na: 77, cl: 77, k: 0, ca: 0, lac: 0, gluc: 50, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "0.45% NaCl", osm: 154, na: 77, cl: 77, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "3% NaCl", osm: 1026, na: 513, cl: 513, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "Ringer's Lactate", osm: 272, na: 130, cl: 109, k: 4, ca: 3, lac: 28, gluc: 0, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "Plasma-Lyte A", osm: 294, na: 140, cl: 98, k: 5, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 0, hes: 0, cop: 0 },
+        { name: "Albumin 5%", osm: 308, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 0, alb: 50, dex: 0, hes: 0, cop: 20 },
+        { name: "Albumin 20%", osm: 308, na: 120, cl: 120, k: 0, ca: 0, lac: 0, gluc: 0, alb: 200, dex: 0, hes: 0, cop: 80 },
+        { name: "Albumin 25%", osm: 308, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 0, alb: 250, dex: 0, hes: 0, cop: 100 },
+        { name: "Dextran-40", osm: 310, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 100, hes: 0, cop: 68 },
+        { name: "Dextran-70", osm: 310, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 60, hes: 0, cop: 70 },
+        { name: "Hetastarch (HES) 6%", osm: 310, na: 154, cl: 154, k: 0, ca: 0, lac: 0, gluc: 0, alb: 0, dex: 0, hes: 60, cop: 30 }
+    ];
+
+    window.onload = function() {
+        const sel1 = document.getElementById('sel_fluid1');
+        const sel2 = document.getElementById('sel_fluid2');
+        fluids.forEach((f, index) => {
+            let opt = document.createElement('option');
+            opt.value = index;
+            opt.text = f.name;
+            sel1.appendChild(opt.cloneNode(true));
+            sel2.appendChild(opt);
+        });
+        sel1.value = 5; // D40
+        sel2.value = 0; // Water
+        updateUnits();
+    };
+
+    function toggleSource() {
+        const type = document.querySelector('input[name="source_type"]:checked').value;
+        const grpPreset = document.getElementById('grp_preset');
+        const grpManual = document.getElementById('grp_manual');
+        const grpParamType = document.getElementById('grp_param_type');
+        const grpParamManual = document.getElementById('grp_param_manual_label');
+
+        if (type === 'manual') {
+            grpPreset.classList.add('hidden');
+            grpManual.classList.remove('hidden');
+            grpParamType.classList.add('hidden');
+            grpParamManual.classList.remove('hidden');
+        } else {
+            grpPreset.classList.remove('hidden');
+            grpManual.classList.add('hidden');
+            grpParamType.classList.remove('hidden');
+            grpParamManual.classList.add('hidden');
+        }
+        updateUnits();
+    }
+
+    function updateUnits() {
+        const sourceType = document.querySelector('input[name="source_type"]:checked').value;
+        const display = document.getElementById('target_unit_display');
+        
+        if (sourceType === 'manual') {
+            display.innerText = "(mcg/ml)";
+        } else {
+            const type = document.getElementById('sel_target_type').value;
+            if (type === 'glucose') display.innerText = "(%)";
+            else if (type === 'na') display.innerText = "(mEq/L)";
+            else if (type === 'albumin') display.innerText = "(%)";
+            else if (type === 'osmo') display.innerText = "(mOsm/L)";
+        }
+    }
+
+    function addMath(title, eq, res) {
+        return `<div class="math-block">
+            <span class="math-title">${title}</span>
+            <span class="math-eq">${eq}</span>
+            <span class="math-res">${res}</span>
+        </div>`;
+    }
+
+    function calculate() {
+        const sourceType = document.querySelector('input[name="source_type"]:checked').value;
+        const idx1 = parseInt(document.getElementById('sel_fluid1').value);
+        const idx2 = parseInt(document.getElementById('sel_fluid2').value);
+        // fluid1 is only used if Preset, fluid2 is always the solvent
+        const fluid1 = fluids[idx1]; 
+        const fluid2 = fluids[idx2];
+        const totalVol = parseFloat(document.getElementById('in_total_vol').value);
+        let targetVal = parseFloat(document.getElementById('in_target_val').value);
+
+        if (isNaN(targetVal) || isNaN(totalVol)) {
+            alert("Please fill in Target Value and Total Volume.");
+            return;
+        }
+
+        let C1, C2, unitLabel = "", paramName = "";
+
+        if (sourceType === 'manual') {
+            // Manual Mode Logic
+            const manualConc = parseFloat(document.getElementById('in_manual_conc').value);
+            if(isNaN(manualConc)) {
+                alert("Please enter Manual Concentration.");
+                return;
+            }
+            C1 = manualConc;
+            C2 = 0; // Assume solvent (standard fluid) has 0 of the manual drug
+            unitLabel = "mcg/ml";
+            paramName = "Custom Drug";
+        } else {
+            // Preset Mode Logic
+            const targetType = document.getElementById('sel_target_type').value;
+            if (targetType === 'glucose') {
+                C1 = fluid1.gluc / 10; C2 = fluid2.gluc / 10; unitLabel = "%"; paramName = "Glucose";
+            } else if (targetType === 'na') {
+                C1 = fluid1.na; C2 = fluid2.na; unitLabel = "mEq/L"; paramName = "Sodium";
+            } else if (targetType === 'albumin') {
+                C1 = fluid1.alb / 10; C2 = fluid2.alb / 10; unitLabel = "%"; paramName = "Albumin";
+            } else if (targetType === 'osmo') {
+                C1 = fluid1.osm; C2 = fluid2.osm; unitLabel = "mOsm/L"; paramName = "Osmolarity";
+            }
+        }
+
+        // Validity Check
+        if (targetVal > Math.max(C1, C2) || targetVal < Math.min(C1, C2)) {
+            document.getElementById('result_main').innerText = "Impossible";
+            document.getElementById('result_main').style.color = "var(--danger)";
+            document.getElementById('result_sub').innerText = `Target ${targetVal}${unitLabel} outside range (${Math.min(C1,C2).toFixed(1)}-${Math.max(C1,C2).toFixed(1)}).`;
+            document.getElementById('math_output').innerHTML = "";
+            document.getElementById('composition_body').innerHTML = "";
+            document.getElementById('calculation_footer').innerText = "";
+            return;
+        }
+        document.getElementById('result_main').style.color = "var(--primary)";
+
+        // Math: Alligation / Dilution Formula
+        let vol1, vol2;
+        if (C1 === C2) {
+             vol1 = totalVol / 2; vol2 = totalVol / 2;
+        } else {
+            // V1 = Vt * (Target - C2) / (C1 - C2)
+            const num = Math.abs(targetVal - C2);
+            const den = Math.abs(C1 - C2);
+            vol1 = totalVol * (num / den);
+            vol2 = totalVol - vol1;
+        }
+
+        // Display Results
+        let fluid1Name = (sourceType === 'manual') ? "Manual Concentrate" : fluid1.name;
+        
+        document.getElementById('result_main').innerText = 
+            `Mix ${vol1.toFixed(1)} mL of ${fluid1Name}`;
+        document.getElementById('result_sub').innerHTML = 
+            `<b>+</b> ${vol2.toFixed(1)} mL of ${fluid2.name} <br>to obtain ${totalVol} mL of <b>${targetVal}${unitLabel}</b> solution.`;
+
+        let mathHTML = "";
+        mathHTML += addMath("1. Variables", 
+            `Ct=${targetVal}, C1=${C1}, C2=${C2}, Vt=${totalVol}`, "");
+        mathHTML += addMath("2. Formula", 
+            `V1 = Vt × (Ct - C2) / (C1 - C2)`, 
+            `V1 = ${totalVol} × ${(targetVal - C2).toFixed(2)} / ${(C1 - C2).toFixed(2)}`);
+        mathHTML += addMath("3. Result", 
+            `V1 = <b>${vol1.toFixed(1)} mL</b>`, 
+            `V2 = ${totalVol} - ${vol1.toFixed(1)} = <b>${vol2.toFixed(1)} mL</b>`);
+        document.getElementById('math_output').innerHTML = mathHTML;
+
+        // --- Calculation for Final Composition & Footer String ---
+        // For Manual, we assume Fluid 1 (manual) contributes ONLY the drug and negligible electrolytes
+        // Or we assume it has 0 background electrolytes.
+        
+        let footerText = "DETAILED FINAL COMPOSITION DERIVATION:\n";
+        footerText += "Formula: C_final = ((Vol1 × C1) + (Vol2 × C2)) / Vol_Total\n";
+        if(sourceType === 'manual') footerText += "Note: Manual Input assumed to have 0 background electrolytes.\n\n";
+        else footerText += "\n";
+
+        const processParam = (label, key, unit, massFactor = 0) => {
+            const val1 = (sourceType === 'manual') ? 0 : fluid1[key]; // Manual fluid assumed 0 electrolyte
+            const val2 = fluid2[key];
+            const final = ((vol1 * val1) + (vol2 * val2)) / totalVol;
+            const vL = totalVol / 1000;
+            const mass = massFactor > 0 ? final * vL * massFactor : 0;
+            
+            footerText += `${label}: ((${vol1.toFixed(1)}×${val1}) + (${vol2.toFixed(1)}×${val2})) / ${totalVol} = ${final.toFixed(2)} ${unit}\n`;
+            
+            return { label, final, unit, mass };
+        };
+
+        const rows = [];
+        
+        // If Manual, add the manual drug row explicitly
+        if (sourceType === 'manual') {
+             // Total Mass of drug = TargetConc (mcg/ml) * TotalVol (ml) / 1000 => mg
+             const totalDrugMassMg = (targetVal * totalVol) / 1000;
+             rows.push({ label: "Custom Drug", final: targetVal, unit: "mcg/ml", mass: totalDrugMassMg });
+             footerText += `Custom Drug: Target met at ${targetVal} mcg/ml\n`;
+        }
+
+        rows.push(processParam("Osmolarity", "osm", "mOsm/L"));
+        rows.push(processParam("Na", "na", "mEq/L", 23));
+        rows.push(processParam("Cl", "cl", "mEq/L", 35.5));
+        rows.push(processParam("Albumin", "alb", "g/L", 1000));
+        rows.push(processParam("Glucose", "gluc", "g/L", 1000));
+        rows.push(processParam("COP", "cop", "mmHg"));
+
+        let tableHTML = "";
+        rows.forEach(r => {
+            let displayVal = r.final.toFixed(1) + " " + r.unit;
+            if (r.label === "Glucose") {
+                displayVal += ` (${(r.final/10).toFixed(1)}%)`;
+            }
+            
+            tableHTML += `<tr>
+                <td>${r.label}</td>
+                <td>${displayVal}</td>
+                <td>${r.mass > 0 ? r.mass.toFixed(2) : '-'}</td>
+            </tr>`;
+        });
+
+        document.getElementById('composition_body').innerHTML = tableHTML;
+        document.getElementById('calculation_footer').innerText = footerText;
+    }
+</script>
+
+</body>
+</html>
+

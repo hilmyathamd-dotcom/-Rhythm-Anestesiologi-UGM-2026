@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Neopad Adult Calculator</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --light: #ecf0f1;
+            --border: #bdc3c7;
+            --secondary-text: #e67e22;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 1.5rem; 
+            text-align: center; 
+            margin-bottom: 20px; 
+        }
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background-color: var(--light);
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .input-wrapper { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 0.85rem; }
+        .stepper-container {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .stepper-container select {
+            flex: 1;
+            border: none;
+            padding: 8px;
+            font-size: 1rem;
+            outline: none;
+            background: transparent;
+        }
+        .decimal-controls {
+            display: flex;
+            align-items: center;
+            border-left: 1px solid var(--border);
+            background: #f9f9f9;
+        }
+        .decimal-btn {
+            background: #eee;
+            border: none;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+        .decimal-btn:hover { background: #ddd; }
+        .decimal-val {
+            min-width: 25px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--accent);
+        }
+        select, .input-group input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 16px; background: white; width: 100%; box-sizing: border-box; }
+        .section-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 8px 12px;
+            margin: 20px 0 10px 0;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .result-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .result-label { color: #555; font-weight: 500; flex: 1; padding-top: 2px; }
+        .result-value { font-weight: 700; color: var(--primary); text-align: right; line-height: 1.4; flex: 1.5; display: flex; flex-direction: column; align-items: flex-end; }
+        .sub-header { font-weight: bold; color: var(--accent); margin-top: 10px; border-bottom: 2px solid var(--accent); display: inline-block; }
+        .pbw-box { background: #e8f6f3; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #a3e4d7; }
+        .manual-toggle-group { display:flex; align-items:center; gap:5px; margin-top:2px; }
+        .manual-label { font-size:0.75em; margin:0; display:flex; align-items:center; gap:3px; color:#7f8c8d; font-weight:normal; cursor:pointer; }
+        .manual-input { width:50px; padding:2px 4px; font-size:0.85em; border:1px solid #bdc3c7; border-radius:3px; display:none; }
+        @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Neopad Adult Calculator</h1>
+
+    <div class="input-group">
+        <div class="input-wrapper">
+            <label for="ageYear">Usia (Tahun)</label>
+            <input type="number" id="ageYear" inputmode="numeric" min="0" max="120" value="50" oninput="userEdit()">
+        </div>
+        <div class="input-wrapper">
+            <label for="weight">Berat Badan (kg)</label>
+            <input type="number" id="weight" inputmode="decimal" min="1" max="300" step="0.1" value="70" oninput="userEdit()">
+        </div>
+        <div class="input-wrapper">
+            <label for="height">Tinggi Badan (cm)</label>
+            <input type="number" id="height" inputmode="decimal" min="50" max="250" step="0.1" value="160" oninput="userEdit()">
+        </div>
+        <div class="input-wrapper">
+            <label for="gender">Gender</label>
+            <select id="gender" onchange="userEdit()">
+                <option value="male" selected>Laki-laki</option>
+                <option value="female">Perempuan</option>
+            </select>
+        </div>
+        <div class="input-wrapper">
+            <label for="ppHours">PP (Jam)</label>
+            <input type="number" id="ppHours" inputmode="decimal" min="0" max="48" step="0.5" value="8" oninput="calculate()">
+        </div>
+        <div class="input-wrapper">
+            <label for="relFactor">REL</label>
+            <select id="relFactor" onchange="calculate()">
+                <option value="2">Noninvasive (2 ml/kg/jam)</option>
+                <option value="4" selected>Mildly invasive (4 ml/kg/jam)</option>
+                <option value="8">Moderately invasive (8 ml/kg/jam)</option>
+                <option value="10">Significantly invasive (≥10 ml/kg/jam)</option>
+            </select>
+        </div>
+        <div class="input-wrapper">
+            <label for="hctInit">Hct Awal (%)</label>
+            <input type="number" id="hctInit" inputmode="decimal" min="5" max="80" step="0.1" value="40" oninput="calculate()">
+        </div>
+    </div>
+
+    <div class="pbw-box">
+        <div class="result-row" style="border:none;">
+            <span class="result-label">Predicted Body Weight (PBW)</span>
+            <span id="resPBW" class="result-value">-</span>
+        </div>
+    </div>
+
+    <div class="section-header">HEMODINAMIK & RESPIRASI</div>
+    <div class="grid-2">
+        <div class="result-row"><span class="result-label">Heart Rate (HR)</span><span id="resHR" class="result-value">60 - 100</span></div>
+        <div class="result-row"><span class="result-label">Resp. Rate (RR)</span><span id="resRR" class="result-value">12 - 20</span></div>
+    </div>
+    <div class="result-row"><span class="result-label">Tidal Volume (VT) based on PBW</span><span id="resVT" class="result-value">-</span></div>
+    <div class="result-row">
+        <span class="result-label">Minute Vol Factor (ml/kg PBW/min)</span>
+        <span class="result-value">
+            <span id="resMVFactor">80 - 100</span>
+            <div class="manual-toggle-group">
+                <label class="manual-label"><input type="checkbox" id="mvOverrideToggle" onchange="calculate()"> Manual</label>
+                <input type="number" id="mvOverrideValue" class="manual-input" placeholder="ml/kg" oninput="calculate()">
+            </div>
+        </span>
+    </div>
+    <div class="result-row"><span class="result-label">Minute Vol Total (MV)</span><span id="resMV" class="result-value">-</span></div>
+
+    <div class="section-header">CAIRAN & DARAH</div>
+    <div class="result-row">
+        <span class="result-label">EBV Factor</span>
+        <span class="result-value">
+            <span id="resEBVFactor">-</span>
+            <div class="manual-toggle-group">
+                <label class="manual-label"><input type="checkbox" id="ebvOverrideToggle" onchange="calculate()"> Manual</label>
+                <input type="number" id="ebvOverrideValue" class="manual-input" placeholder="ml/kg" oninput="calculate()">
+            </div>
+        </span>
+    </div>
+    <div class="result-row"><span class="result-label">EBV (Estimated Blood Vol)</span><span id="resEBV" class="result-value">-</span></div>
+    <div class="sub-header" style="width:100%; border-bottom:1px solid #eee; margin-bottom:5px;">MABL (Max Allowable Blood Loss)</div>
+    <div id="ablSection"></div>
+    
+    <div class="sub-header">Fluid Management</div>
+    <div class="result-row"><span class="result-label">Maintenance (2 cc/kgBB/jam)</span><span id="resMaint" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">Replacement (REL)</span><span id="resREL" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">PP (Pengganti Puasa)</span><span id="resPP" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">KC 1 (Jam 1: M + REL + 1/2 PP)</span><span id="resKC1" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">KC 2-3 (Jam 2/3: M + REL + 1/4 PP)</span><span id="resKC2" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">KC 4 (Jam 4: M + REL)</span><span id="resKC4" class="result-value">-</span></div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+    const $ = (id) => document.getElementById(id);
+    const num = (id) => { const v = $(id).value; return v === "" ? NaN : parseFloat(v); };
+
+    function userEdit() {
+        if (window.PatientStore) {
+            PatientStore.set({ weight: num('weight'), height: num('height'), ageYear: num('ageYear'), ageMonth: 0, gender: $('gender').value });
+        }
+        calculate();
+    }
+
+    function applyPatient(p) {
+        if (!p) return;
+        if (isFinite(p.weight)) $('weight').value = p.weight;
+        if (isFinite(p.height)) $('height').value = p.height;
+        if (isFinite(p.ageYear)) $('ageYear').value = p.ageYear;
+        if (p.gender) $('gender').value = p.gender;
+        calculate();
+    }
+
+    function calculate() {
+        const weight = num('weight');
+        const height = num('height');
+        const gender = $('gender').value;
+        const ppHours = Math.max(0, num('ppHours') || 0);
+        const relFactor = parseFloat($('relFactor').value) || 0;
+        const hctInit = num('hctInit');
+        const hasWeight = isFinite(weight) && weight > 0;
+
+        let pbw = 0;
+        if (isFinite(height) && height > 0) {
+            const base = gender === 'male' ? 50 : 45.5;
+            pbw = base + 0.91 * (height - 152.4);
+            $('resPBW').innerText = pbw.toFixed(1) + " kg";
+        } else $('resPBW').innerText = "-";
+
+        $('resVT').innerText = pbw > 0 ? (6*pbw).toFixed(0) + " - " + (8*pbw).toFixed(0) + " ml" : "-";
+
+        // Minute volume based on PBW (falls back to actual weight when height is missing)
+        const mvWeight = pbw > 0 ? pbw : weight;
+        const mvOn = $('mvOverrideToggle').checked;
+        const mvIn = $('mvOverrideValue');
+        let mvMin = 80, mvMax = 100;
+        mvIn.style.display = mvOn ? "inline-block" : "none";
+        if (mvOn) { const v = parseFloat(mvIn.value); if (isFinite(v)) { mvMin = v; mvMax = v; } }
+        $('resMVFactor').innerText = mvMin === mvMax ? mvMin + " ml/kg" : mvMin + " - " + mvMax + " ml/kg";
+        $('resMV').innerText = isFinite(mvWeight) && mvWeight > 0
+            ? (mvMin === mvMax ? (mvMin*mvWeight).toFixed(0) : (mvMin*mvWeight).toFixed(0) + " - " + (mvMax*mvWeight).toFixed(0)) + " ml/min" + (pbw > 0 ? "" : " (actual BB)")
+            : "-";
+
+        const ids = ['resEBVFactor','resEBV','resMaint','resREL','resPP','resKC1','resKC2','resKC4'];
+        if (!hasWeight) { ids.forEach(id => $(id).innerText = "-"); $('ablSection').innerHTML = ""; return; }
+
+        const ebvOn = $('ebvOverrideToggle').checked;
+        const ebvIn = $('ebvOverrideValue');
+        let ebvF = gender === 'male' ? 70 : 65;
+        ebvIn.style.display = ebvOn ? "inline-block" : "none";
+        if (ebvOn) { const v = parseFloat(ebvIn.value); if (isFinite(v)) ebvF = v; }
+        $('resEBVFactor').innerText = ebvF + " ml/kg";
+        const ebv = weight * ebvF;
+        $('resEBV').innerText = ebv.toFixed(0) + " ml";
+
+        let ablHtml = "";
+        if (isFinite(hctInit) && hctInit > 0) {
+            [30, 27, 24, 21].forEach(t => {
+                const v = hctInit > t ? (ebv * (hctInit - t)) / hctInit : 0;
+                ablHtml += `<div class="result-row"><span class="result-label">Target Hct ${t}%</span><span class="result-value">${v.toFixed(0)} ml</span></div>`;
+            });
+        }
+        $('ablSection').innerHTML = ablHtml;
+
+        const maint = 2 * weight;
+        const pp = maint * ppHours;
+        const rel = relFactor * weight;
+        $('resMaint').innerText = maint.toFixed(0) + " ml/jam";
+        $('resREL').innerText = rel.toFixed(0) + " ml/jam";
+        $('resPP').innerText = pp.toFixed(0) + " ml";
+        $('resKC1').innerText = (maint + rel + 0.5*pp).toFixed(0) + " ml";
+        $('resKC2').innerText = (maint + rel + 0.25*pp).toFixed(0) + " ml";
+        $('resKC4').innerText = (maint + rel).toFixed(0) + " ml";
+    }
+
+    window.addEventListener('load', () => {
+        if (window.PatientStore) { applyPatient(PatientStore.get()); PatientStore.onChange(applyPatient); }
+        calculate();
+    });
+</script>
+</body>
+</html>
+
