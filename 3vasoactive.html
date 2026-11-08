@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Vasoactive Agent Calculator</title>
+<title>Continuous Infusion Calculator</title>
 <style>
   :root { 
       --primary: #2c3e50; 
@@ -147,6 +147,7 @@
   .result-value { 
       font-weight: 700; 
       color: var(--primary); 
+      text-align: right;
   }
 
   /* Drug Tables */
@@ -193,7 +194,7 @@
 <body>
 
 <div class="container">
-  <div class="static-header">VASOACTIVE AGENT CALCULATOR</div>
+  <div class="static-header">CONTINUOUS INFUSION CALCULATOR</div>
 
   <div id="vasoWrapper">
       <div class="input-group">
@@ -285,6 +286,23 @@
           prep: "1 mg / 50 cc", 
           conc: 20, // mcg/cc
           steps: [0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5] 
+      },
+      { 
+          name: "Dexmedetomidine", 
+          prep: "200 mcg (1 vial) / 50 cc NS", 
+          conc: 4, // mcg/cc
+          perHour: true, // dose in mcg/kg/jam
+          loading: { dose: 1, minutes: 10 }, // 1 mcg/kg over 10 menit
+          note: "Continuous: 0.2 - 0.7 mcg/kg/jam",
+          steps: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] 
+      },
+      { 
+          name: "Ketamine", 
+          prep: "100 mg / 10 cc (vial, tanpa pengenceran)", 
+          conc: 10, // mg/cc
+          mass: "mg", // dose & concentration in mg
+          perHour: true, // dose in mg/kg/jam
+          steps: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0] 
       }
   ];
 
@@ -324,16 +342,29 @@
       vasoDrugs.forEach(drug => {
           let rows = '';
           drug.steps.forEach(dose => {
-              // Formula: (Dose * BB * 60) / Concentration
+              // mcg/kg/min: (Dose * BB * 60) / Conc ; mcg/kg/jam: (Dose * BB) / Conc
               // Result is cc/hour
-              const rate = weight > 0 ? (dose * weight * 60) / drug.conc : 0;
+              const rate = weight > 0 ? (dose * weight * (drug.perHour ? 1 : 60)) / drug.conc : 0;
               rows += `
                   <tr>
                       <td>${dose}</td>
-                      <td class="calc-val">${rate > 0 ? rate.toFixed(1) : "-"}</td>
+                      <td class="calc-val">${rate > 0 ? rate.toFixed(drug.perHour ? 2 : 1) : "-"}</td>
                   </tr>
               `;
           });
+
+          let loadingHtml = '';
+          if (drug.loading) {
+              const mcg = drug.loading.dose * weight;
+              const cc = mcg / drug.conc;
+              const ccPerHour = cc * 60 / drug.loading.minutes;
+              loadingHtml = `<div class="result-row" style="background:#fff8e1; padding:6px 8px; margin-bottom:6px; border-radius:4px;">
+                      <span class="result-label">Loading ${drug.loading.dose} mcg/kg / ${drug.loading.minutes} mnt</span>
+                      <span class="result-value">${weight > 0 ? `${+mcg.toFixed(1)} mcg = ${cc.toFixed(2)} cc<br><small style="font-weight:500">(${ccPerHour.toFixed(1)} cc/jam selama ${drug.loading.minutes} mnt)</small>` : "-"}</span>
+                  </div>`;
+          }
+          const mass = drug.mass || 'mcg';
+          const unit = drug.perHour ? `${mass}/kg/jam` : `${mass}/kg/min`;
 
           const card = document.createElement('div');
           // No inline margins here, controlled by grid gap
@@ -341,13 +372,15 @@
               <div class="section-header">${drug.name}</div>
               <div class="result-box">
                   <div class="info-meta">
-                      Prep: ${drug.prep} | Conc: ${drug.conc} mcg/cc
+                      Prep: ${drug.prep} | Conc: ${drug.conc} ${mass}/cc
                   </div>
+                  ${loadingHtml}
+                  ${drug.note ? `<div class="info-meta">${drug.note}</div>` : ''}
                   <table>
                       <thead>
                           <tr>
-                              <th>Dose (mcg/kg/min)</th>
-                              <th>Rate (cc/hour)</th>
+                              <th>Dose (${unit})</th>
+                              <th>Rate (cc/jam)</th>
                           </tr>
                       </thead>
                       <tbody>
