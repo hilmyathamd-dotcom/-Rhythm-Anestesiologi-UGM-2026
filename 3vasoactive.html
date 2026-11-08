@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Vasoactive Agent Calculator</title>
+<style>
+  :root { 
+      --primary: #2c3e50; 
+      --accent: #3498db; 
+      --light: #ecf0f1; 
+      --border: #bdc3c7; 
+      --secondary-text: #e67e22; 
+      --bg-color: #f4f6f8;
+  }
+
+  body { 
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Matches EWS */
+      margin: 0; 
+      padding: 10px; /* Reduced padding matches EWS */
+      background-color: var(--bg-color); 
+      color: #333; 
+      font-size: 14px; 
+      line-height: 1.5;
+  }
+
+  /* Container removed/neutralized to fit iframe/toggle tight */
+  .container { 
+      width: 100%; 
+      margin: 0; 
+      background: transparent; 
+      padding: 0; 
+      border: none; 
+      box-shadow: none; 
+  } 
+
+  .static-header { 
+      background-color: var(--accent); 
+      color: white; 
+      width: 100%; 
+      padding: 12px; 
+      border-radius: 6px; 
+      font-size: 1.1rem; 
+      font-weight: bold; 
+      text-align: center; 
+      text-transform: uppercase; 
+      margin-bottom: 12px; 
+      box-sizing: border-box; 
+  }
+
+  #vasoWrapper { 
+      display: block; 
+  }
+
+  /* Compact Input Grid */
+  .input-group { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Tighter columns */
+      gap: 10px; /* Reduced gap */
+      padding: 12px; 
+      background-color: white; /* White background for contrast against gray body */
+      border: 1px solid var(--border);
+      border-radius: 6px; 
+      margin-bottom: 15px; 
+      margin-top: 0; 
+  }
+
+  .input-wrapper { 
+      display: flex; 
+      flex-direction: column; 
+  }
+
+  label { 
+      font-weight: 600; 
+      margin-bottom: 4px; 
+      font-size: 0.8rem; 
+      color: var(--primary);
+  }
+
+  input { 
+      padding: 8px; 
+      border: 1px solid var(--border); 
+      border-radius: 4px; 
+      font-size: 0.95rem; 
+      width: 100%;
+      box-sizing: border-box;
+  }
+
+  input:focus { 
+      border-color: var(--accent); 
+      outline: none; 
+  }
+
+  input[readonly] {
+      background-color: #f9f9f9;
+      color: #7f8c8d;
+  }
+
+  /* Result Sections */
+  .section-header { 
+      background-color: var(--primary); 
+      color: white; 
+      padding: 8px 12px; 
+      margin: 0; 
+      border-radius: 4px 4px 0 0; 
+      font-size: 0.9rem; 
+      font-weight: bold; 
+      text-transform: uppercase; 
+  }
+
+  .result-box { 
+      background: white; 
+      border: 1px solid var(--border); 
+      border-top: none; 
+      border-radius: 0 0 4px 4px; 
+      padding: 10px; 
+      margin-bottom: 15px; 
+  }
+
+  .info-meta { 
+      font-size: 0.75rem; 
+      color: #7f8c8d; 
+      border-bottom: 1px solid #eee; 
+      padding-bottom: 5px; 
+      margin-bottom: 8px; 
+  }
+
+  .result-row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 6px 0; 
+      border-bottom: 1px solid #eee; 
+      font-size: 0.9rem;
+  }
+  
+  .result-row:last-child {
+      border-bottom: none;
+  }
+
+  .result-label { 
+      color: #555; 
+      font-weight: 500; 
+  }
+
+  .result-value { 
+      font-weight: 700; 
+      color: var(--primary); 
+  }
+
+  /* Drug Tables */
+  table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      font-size: 0.85rem; 
+  }
+
+  th, td { 
+      text-align: left; 
+      padding: 6px 8px; 
+      border-bottom: 1px solid #eee; 
+  }
+
+  th { 
+      background-color: #f8f9fa; 
+      color: var(--primary); 
+      font-weight: 600; 
+      font-size: 0.8rem;
+  }
+
+  tr:last-child td { 
+      border-bottom: none; 
+  }
+
+  .calc-val { 
+      font-weight: bold; 
+      color: var(--accent); 
+      text-align: right;
+  }
+  
+  td:last-child, th:last-child {
+      text-align: right;
+  }
+
+  .grid-cards { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+      gap: 12px; 
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="static-header">VASOACTIVE AGENT CALCULATOR</div>
+
+  <div id="vasoWrapper">
+      <div class="input-group">
+          <div class="input-wrapper">
+              <label>Nama Pasien</label>
+              <input type="text" id="vpName" placeholder="Nama">
+          </div>
+          <div class="input-wrapper">
+              <label>Umur (Tahun)</label>
+              <input type="number" id="vpAge" inputmode="numeric" placeholder="Tahun" oninput="userEdit()">
+          </div>
+          <div class="input-wrapper">
+              <label>Berat (kg)</label>
+              <input type="number" id="vpWeight" inputmode="decimal" value="60" oninput="userEdit()">
+          </div>
+          <div class="input-wrapper">
+              <label>Tinggi (cm)</label>
+              <input type="number" id="vpHeight" inputmode="decimal" value="170" oninput="userEdit()">
+          </div>
+          <div class="input-wrapper">
+              <label>BMI (kg/m²)</label>
+              <input type="text" id="vpBMI" readonly disabled>
+          </div>
+          <div class="input-wrapper">
+              <label>BSA (m²)</label>
+              <input type="text" id="vpBSA" readonly disabled>
+          </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+          <div class="section-header" style="background-color: #e67e22;">ANTICOAGULATION (CPB/CATH)</div>
+          <div class="result-box" style="background-color: #fff5e6; border-color: #ffdcb3; margin-bottom: 0;">
+              <div class="result-row">
+                  <span class="result-label">Heparin Initial (3 mg/kg = 300 IU/kg)</span>
+                  <span id="resHeparin" class="result-value">- mg</span>
+              </div>
+              <div class="result-row">
+                  <span class="result-label">Protamin (Heparin x 1.25)</span>
+                  <span id="resProtamin" class="result-value">- mg</span>
+              </div>
+              <div class="result-row">
+                  <span class="result-label">Protamin Add (Heparin x 1.5)</span>
+                  <span id="resProtaminAdd" class="result-value">- mg</span>
+              </div>
+          </div>
+      </div>
+
+      <div class="grid-cards" id="drugGrid">
+          </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  // Drug Configuration
+  const vasoDrugs = [
+      { 
+          name: "Noradrenalin / Vascon", 
+          prep: "4 mg / 50 cc", 
+          conc: 80, // mcg/cc
+          steps: [0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5] 
+      },
+      { 
+          name: "Nitroglycerin (NTG)", 
+          prep: "50 mg / 50 cc", 
+          conc: 1000, // mcg/cc
+          steps: [0.5, 1, 1.5, 2, 2.5, 3, 4, 5] 
+      },
+      { 
+          name: "Dobutamin (Dobuject) 250", 
+          prep: "250 mg / 50 cc", 
+          conc: 5000, // mcg/cc
+          steps: [3, 5, 7.5, 10, 12.5, 15, 20] 
+      },
+      { 
+          name: "Dopamin (Indop)", 
+          prep: "200 mg / 50 cc", 
+          conc: 4000, // mcg/cc
+          steps: [3, 5, 7.5, 10, 12.5, 15, 20] 
+      },
+      { 
+          name: "Milrinon", 
+          prep: "20 mg / 50 cc", 
+          conc: 400, // mcg/cc
+          steps: [0.375, 0.5, 0.75, 1.0] 
+      },
+      { 
+          name: "Adrenalin / Epinefrin", 
+          prep: "1 mg / 50 cc", 
+          conc: 20, // mcg/cc
+          steps: [0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5] 
+      }
+  ];
+
+  function calculateVaso() {
+      const weight = parseFloat(document.getElementById('vpWeight').value) || 0;
+      const height = parseFloat(document.getElementById('vpHeight').value) || 0;
+
+      // 1. BMI & BSA
+      let bmi = 0;
+      let bsa = 0;
+      if (weight > 0 && height > 0) {
+          const heightM = height / 100;
+          bmi = weight / (heightM * heightM);
+          // Du Bois formula
+          bsa = 0.007184 * Math.pow(weight, 0.425) * Math.pow(height, 0.725);
+      }
+      document.getElementById('vpBMI').value = bmi > 0 ? bmi.toFixed(2) : "-";
+      document.getElementById('vpBSA').value = bsa > 0 ? bsa.toFixed(2) : "-";
+
+      // 2. Heparin
+      const heparin = weight * 3;
+      const protamine = heparin * 1.25;
+      const protamineAdd = heparin * 1.5;
+
+      document.getElementById('resHeparin').innerText = weight > 0 ? heparin.toFixed(1) + " mg (" + Math.round(heparin * 100).toLocaleString('id-ID') + " IU)" : "-";
+      document.getElementById('resProtamin').innerText = weight > 0 ? protamine.toFixed(2) + " mg" : "-";
+      document.getElementById('resProtaminAdd').innerText = weight > 0 ? protamineAdd.toFixed(2) + " mg" : "-";
+
+      // 3. Render Drugs
+      renderVasoGrid(weight);
+  }
+
+  function renderVasoGrid(weight) {
+      const grid = document.getElementById('drugGrid');
+      grid.innerHTML = '';
+
+      vasoDrugs.forEach(drug => {
+          let rows = '';
+          drug.steps.forEach(dose => {
+              // Formula: (Dose * BB * 60) / Concentration
+              // Result is cc/hour
+              const rate = weight > 0 ? (dose * weight * 60) / drug.conc : 0;
+              rows += `
+                  <tr>
+                      <td>${dose}</td>
+                      <td class="calc-val">${rate > 0 ? rate.toFixed(1) : "-"}</td>
+                  </tr>
+              `;
+          });
+
+          const card = document.createElement('div');
+          // No inline margins here, controlled by grid gap
+          card.innerHTML = `
+              <div class="section-header">${drug.name}</div>
+              <div class="result-box">
+                  <div class="info-meta">
+                      Prep: ${drug.prep} | Conc: ${drug.conc} mcg/cc
+                  </div>
+                  <table>
+                      <thead>
+                          <tr>
+                              <th>Dose (mcg/kg/min)</th>
+                              <th>Rate (cc/hour)</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          ${rows}
+                      </tbody>
+                  </table>
+              </div>
+          `;
+          grid.appendChild(card);
+      });
+  }
+
+  function userEdit() {
+      if (window.PatientStore) {
+          const n = (id) => { const v = document.getElementById(id).value; return v === "" ? NaN : parseFloat(v); };
+          PatientStore.set({ weight: n('vpWeight'), height: n('vpHeight'), ageYear: n('vpAge') });
+      }
+      calculateVaso();
+  }
+
+  function applyPatient(p) {
+      if (!p) return;
+      if (isFinite(p.weight)) document.getElementById('vpWeight').value = p.weight;
+      if (isFinite(p.height)) document.getElementById('vpHeight').value = p.height;
+      if (isFinite(p.ageYear)) document.getElementById('vpAge').value = p.ageYear;
+      calculateVaso();
+  }
+
+  // Init
+  if (window.PatientStore) { applyPatient(PatientStore.get()); PatientStore.onChange(applyPatient); }
+  calculateVaso();
+</script>
+
+</body>
+</html>
+

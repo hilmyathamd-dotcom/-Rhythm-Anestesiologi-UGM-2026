@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Neopad Calculator</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --light: #ecf0f1;
+            --border: #bdc3c7;
+            --secondary-text: #e67e22;
+            --age-text: #7f8c8d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        /* Quick-fill parser */
+        .quick-box {
+            background: #eaf4fc;
+            border: 1px solid #b6d9f2;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .quick-box label { display:block; font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: var(--primary); }
+        .quick-box textarea {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 48px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .quick-row { display:flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+        .chips { display:flex; flex-wrap: wrap; gap: 4px; }
+        .chip { background: #fff; border: 1px solid #a3c9e8; color: var(--primary); border-radius: 12px; padding: 2px 8px; font-size: 0.8rem; }
+        .chip.none { border-color: #ddd; color: #999; }
+        .chip.warn { border-color: #f0b27a; background: #fdf2e9; color: #a04000; }
+        .clear-btn { background: none; border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-size: 0.8rem; color: #555; cursor: pointer; }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            padding: 15px;
+            background-color: var(--light);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            margin-top: 12px;
+        }
+        .input-wrapper { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 0.85rem; }
+
+        select, .input-group input {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 16px; /* prevents iOS zoom */
+            background: white;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .input-group input.flash { animation: flash 1s ease-out; }
+        @keyframes flash { from { background: #fff3b0; } to { background: white; } }
+
+        .section-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 8px 12px;
+            margin: 20px 0 10px 0;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .result-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .result-label { color: #555; font-weight: 500; flex: 1; padding-top: 2px; }
+        .result-value { font-weight: 700; color: var(--primary); text-align: right; line-height: 1.4; flex: 1.5; display: flex; flex-direction: column; align-items: flex-end; }
+        .sub-header { font-weight: bold; color: var(--accent); margin-top: 10px; border-bottom: 2px solid var(--accent); display: inline-block; }
+        .note { font-size: 0.75rem; color: #95a5a6; font-weight: normal; }
+        .cap-note { font-size: 0.75em; color: #c0392b; font-weight: 600; }
+
+        .calc-weight { color: var(--primary); }
+        .calc-age { font-size: 0.9em; color: var(--secondary-text); font-weight: 600; }
+        .calc-label { font-size: 0.75em; color: #95a5a6; text-transform: uppercase; margin-right: 4px; font-weight: normal; }
+        .color-text { font-weight: 900; text-shadow: 0 0 1px rgba(0,0,0,0.1); }
+
+        .pbw-box { background: #e8f6f3; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #a3e4d7; }
+
+        .bp-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .bp-btn:hover { background-color: #2980b9; }
+
+        .hypo-box {
+            background: #fff8e1;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid #ffe0b2;
+            color: #4e342e;
+            font-size: 0.9em;
+        }
+        .hypo-list { margin: 5px 0 10px 0; padding-left: 20px; }
+        .hypo-calc-result { font-weight: bold; color: #d35400; font-size: 1.1em; }
+        .hypo-footnote { font-size: 50%; opacity: 0.5; margin-top: 5px; line-height: 1.2; }
+
+        .manual-toggle-group { display:flex; align-items:center; gap:5px; margin-top:2px; }
+        .manual-label { font-size:0.75em; margin:0; display:flex; align-items:center; gap:3px; color:#7f8c8d; font-weight:normal; cursor:pointer; }
+        .manual-input { width:60px; padding:2px 4px; font-size:0.85em; border:1px solid #bdc3c7; border-radius:3px; display:none; }
+
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .container { padding: 12px; }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Neopad Anestesi UGM</h1>
+
+    <div id="calculatorWrapper">
+        <div class="quick-box">
+            <label for="quickInput">Isi cepat (ketik / paste data pasien)</label>
+            <textarea id="quickInput" rows="2" placeholder="Contoh: An. L, 2 th 3 bln, BB 12,5 kg, TB 88 cm, Hct 34, puasa 6 jam" oninput="onQuickInput()"></textarea>
+            <div class="quick-row">
+                <div id="quickChips" class="chips"><span class="chip none">Belum ada data terbaca</span></div>
+                <button class="clear-btn" type="button" onclick="clearQuick()">Hapus</button>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <div class="input-wrapper">
+                <label for="ageYear">Usia (Tahun)</label>
+                <input type="number" id="ageYear" inputmode="numeric" min="0" max="120" step="1" value="30" oninput="userEdit()">
+            </div>
+            <div class="input-wrapper">
+                <label for="ageMonth">Usia (Bulan)</label>
+                <input type="number" id="ageMonth" inputmode="numeric" min="0" max="11" step="1" value="0" oninput="userEdit()">
+            </div>
+            <div class="input-wrapper">
+                <label for="weight">Berat Badan (kg)</label>
+                <input type="number" id="weight" inputmode="decimal" min="0.3" max="200" step="0.1" value="60" oninput="userEdit()">
+            </div>
+            <div class="input-wrapper">
+                <label for="height">Tinggi Badan (cm)</label>
+                <input type="number" id="height" inputmode="decimal" min="20" max="250" step="0.1" placeholder="opsional" oninput="userEdit()">
+            </div>
+            <div class="input-wrapper">
+                <label for="gender">Gender</label>
+                <select id="gender" onchange="userEdit()">
+                    <option value="male" selected>Laki-laki</option>
+                    <option value="female">Perempuan</option>
+                </select>
+            </div>
+            <div class="input-wrapper">
+                <label for="ppHours">PP (Jam)</label>
+                <input type="number" id="ppHours" inputmode="decimal" min="0" max="48" step="0.5" value="8" oninput="calculate()">
+            </div>
+            <div class="input-wrapper">
+                <label for="relFactor">REL</label>
+                <select id="relFactor" onchange="calculate()">
+                    <option value="2">Noninvasive (2 ml/kg/jam)</option>
+                    <option value="4" selected>Mildly invasive (4 ml/kg/jam)</option>
+                    <option value="8">Moderately invasive (8 ml/kg/jam)</option>
+                    <option value="10">Significantly invasive (≥10 ml/kg/jam)</option>
+                </select>
+            </div>
+            <div class="input-wrapper">
+                <label for="hctInit">Hct Awal (%)</label>
+                <input type="number" id="hctInit" inputmode="decimal" min="5" max="80" step="0.1" value="33" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="pbw-box">
+            <div class="result-row" style="border:none;">
+                <span class="result-label">Predicted Body Weight (PBW, dewasa)</span>
+                <span id="resPBW" class="result-value">-</span>
+            </div>
+            <div class="result-row" style="border:none; margin-top: 5px;">
+                <span class="result-label">Predicted Weight (WHO/CDC P25-P75)</span>
+                <span id="resEstWeight" class="result-value">-</span>
+            </div>
+        </div>
+
+        <div class="section-header">DEVICE (Airway)</div>
+        <div class="grid-2">
+            <div class="result-row"><span class="result-label">Mask Type</span><span id="resMask" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">Oral Airway (Guedel)</span><span id="resOPA" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">Blade</span><span id="resBlade" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">Suction Catheter</span><span id="resSuction" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">ETT Size</span><span id="resETT" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">ETT Depth (cm)</span><span id="resDepth" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">LMA Size</span><span id="resLMA" class="result-value">-</span></div>
+        </div>
+
+        <div class="section-header">HEMODINAMIK & RESPIRASI</div>
+        <a href="https://bsolomon.us/app/pediatric-bp/" target="_blank" rel="noopener" class="bp-btn">BP CALCULATOR FOR PEDIATRICS</a>
+
+        <div class="hypo-box">
+            <strong>Hypotension Definition (Systolic BP):</strong>
+            <ul class="hypo-list">
+                <li>&lt;60 mm Hg: Term neonates (0 to 28 days)</li>
+                <li>&lt;70 mm Hg: Infants (1 month to 12 months)</li>
+                <li>&lt;70 mm Hg + (2 × age in years): Children 1 to 10 years</li>
+                <li>&lt;90 mm Hg: Children ≥10 years of age</li>
+            </ul>
+            <div style="border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
+                Patient Minimum SBP: <span id="resMinSBP" class="hypo-calc-result">-</span>
+            </div>
+            <div class="hypo-footnote">
+                <a href="https://doi.org/10.1161/CIRCULATIONAHA.110.971101" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">
+                    https://doi.org/10.1161/CIRCULATIONAHA.110.971101
+                </a>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="result-row"><span class="result-label">Heart Rate (HR)<br><span class="note">PALS, awake</span></span><span id="resHR" class="result-value">-</span></div>
+            <div class="result-row"><span class="result-label">Resp. Rate (RR)<br><span class="note">PALS, awake</span></span><span id="resRR" class="result-value">-</span></div>
+        </div>
+
+        <div class="result-row"><span class="result-label">Tidal Volume (VT)</span><span id="resVT" class="result-value">-</span></div>
+
+        <div class="result-row">
+            <span class="result-label">MV Factor (ml/kg/min)</span>
+            <span class="result-value">
+                <span id="resMVFactor">-</span>
+                <span class="manual-toggle-group">
+                    <label class="manual-label"><input type="checkbox" id="mvOverrideToggle" onchange="calculate()"> Manual</label>
+                    <input type="number" id="mvOverrideValue" class="manual-input" inputmode="decimal" placeholder="ml/kg" oninput="calculate()">
+                </span>
+            </span>
+        </div>
+        <div class="result-row"><span class="result-label">Minute Vol Total (MV)</span><span id="resMV" class="result-value">-</span></div>
+
+        <div class="section-header">CAIRAN & DARAH</div>
+
+        <div class="result-row">
+            <span class="result-label">EBV Factor</span>
+            <span class="result-value">
+                <span id="resEBVFactor">-</span>
+                <span class="manual-toggle-group">
+                    <label class="manual-label"><input type="checkbox" id="ebvOverrideToggle" onchange="calculate()"> Manual</label>
+                    <input type="number" id="ebvOverrideValue" class="manual-input" inputmode="decimal" placeholder="ml/kg" oninput="calculate()">
+                </span>
+            </span>
+        </div>
+
+        <div class="result-row"><span class="result-label">EBV (Estimated Blood Vol)</span><span id="resEBV" class="result-value">-</span></div>
+        <div class="sub-header" style="width:100%; border-bottom:1px solid #eee; margin-bottom:5px;">MABL (Max Allowable Blood Loss)</div>
+        <div id="ablSection"></div>
+
+        <div class="sub-header">Fluid Management</div>
+        <div class="result-row"><span class="result-label">Maintenance (M)<br><span class="note">4-2-1 Holliday-Segar / 2 cc/kgBB/jam</span></span><span id="resMaint" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Replacement (REL)</span><span id="resREL" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">PP (Pengganti Puasa = M × jam)</span><span id="resPP" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">KC 1 (Jam 1: M + REL + 1/2 PP)</span><span id="resKC1" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">KC 2-3 (Jam 2/3: M + REL + 1/4 PP)</span><span id="resKC2" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">KC 4 (Jam 4: M + REL)</span><span id="resKC4" class="result-value">-</span></div>
+
+        <div class="section-header">MEDICATION</div>
+        <div id="medsList"></div>
+
+        <div class="section-header">EMERGENCY</div>
+        <div class="result-row"><span class="result-label">Epinephrine (10 mcg/kg, max 1 mg)</span><span id="resEpi" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Ephedrine (0.1-0.3 mg/kg)</span><span id="resEphedrine" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Atropine (0.01-0.02 mg/kg, max 0.5 mg)</span><span id="resAtropine" class="result-value">-</span></div>
+
+        <div class="section-header">CAUDAL</div>
+        <div class="result-row"><span class="result-label">Armitage (0.5 ml/kg)</span><span id="resArmitageLow" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Armitage (1.0 ml/kg)</span><span id="resArmitageHigh" class="result-value">-</span></div>
+    </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+    // --- GROWTH DATA (0-60 months) ---
+    const growthData = {
+        female: [[0.0, 2.4, 4.2], [1.0, 3.2, 5.5], [2.0, 3.9, 6.6], [3.0, 4.5, 7.5], [4.0, 5.0, 8.2], [5.0, 5.4, 8.8], [6.0, 5.7, 9.3], [7.0, 6.0, 9.8], [8.0, 6.3, 10.2], [9.0, 6.5, 10.5], [10.0, 6.7, 10.9], [11.0, 6.9, 11.2], [12.0, 7.0, 11.5], [13.0, 7.2, 11.8], [14.0, 7.4, 12.1], [15.0, 7.6, 12.4], [16.0, 7.7, 12.6], [17.0, 7.9, 12.9], [18.0, 8.1, 13.2], [19.0, 8.2, 13.5], [20.0, 8.4, 13.7], [21.0, 8.6, 14.0], [22.0, 8.7, 14.3], [23.0, 8.9, 14.6], [24.0, 9.0, 14.8], [25.0, 9.2, 15.1], [26.0, 9.4, 15.4], [27.0, 9.5, 15.7], [28.0, 9.7, 16.0], [29.0, 9.8, 16.2], [30.0, 10.0, 16.5], [31.0, 10.1, 16.8], [32.0, 10.3, 17.1], [33.0, 10.4, 17.3], [34.0, 10.5, 17.6], [35.0, 10.7, 17.9], [36.0, 10.8, 18.1], [37.0, 10.9, 18.4], [38.0, 11.1, 18.7], [39.0, 11.2, 19.0], [40.0, 11.3, 19.2], [41.0, 11.5, 19.5], [42.0, 11.6, 19.8], [43.0, 11.7, 20.1], [44.0, 11.8, 20.4], [45.0, 12.0, 20.7], [46.0, 12.1, 20.9], [47.0, 12.2, 21.2], [48.0, 12.3, 21.5], [49.0, 12.4, 21.8], [50.0, 12.6, 22.1], [51.0, 12.7, 22.4], [52.0, 12.8, 22.6], [53.0, 12.9, 22.9], [54.0, 13.0, 23.2], [55.0, 13.2, 23.5], [56.0, 13.3, 23.8], [57.0, 13.4, 24.1], [58.0, 13.5, 24.4], [59.0, 13.6, 24.6], [60.0, 13.7, 24.9]],
+        male: [[0.0, 2.5, 4.4], [1.0, 3.4, 5.8], [2.0, 4.3, 7.1], [3.0, 5.0, 8.0], [4.0, 5.6, 8.7], [5.0, 6.0, 9.3], [6.0, 6.4, 9.8], [7.0, 6.7, 10.3], [8.0, 6.9, 10.7], [9.0, 7.1, 11.0], [10.0, 7.4, 11.4], [11.0, 7.6, 11.7], [12.0, 7.7, 12.0], [13.0, 7.9, 12.3], [14.0, 8.1, 12.6], [15.0, 8.3, 12.8], [16.0, 8.4, 13.1], [17.0, 8.6, 13.4], [18.0, 8.8, 13.7], [19.0, 8.9, 13.9], [20.0, 9.1, 14.2], [21.0, 9.2, 14.5], [22.0, 9.4, 14.7], [23.0, 9.5, 15.0], [24.0, 9.7, 15.3], [25.0, 9.8, 15.5], [26.0, 10.0, 15.8], [27.0, 10.1, 16.1], [28.0, 10.2, 16.3], [29.0, 10.4, 16.6], [30.0, 10.5, 16.9], [31.0, 10.7, 17.1], [32.0, 10.8, 17.4], [33.0, 10.9, 17.6], [34.0, 11.0, 17.8], [35.0, 11.2, 18.1], [36.0, 11.3, 18.3], [37.0, 11.4, 18.6], [38.0, 11.5, 18.8], [39.0, 11.6, 19.0], [40.0, 11.8, 19.3], [41.0, 11.9, 19.5], [42.0, 12.0, 19.7], [43.0, 12.1, 20.0], [44.0, 12.2, 20.2], [45.0, 12.4, 20.5], [46.0, 12.5, 20.7], [47.0, 12.6, 20.9], [48.0, 12.7, 21.2], [49.0, 12.8, 21.4], [50.0, 12.9, 21.7], [51.0, 13.1, 21.9], [52.0, 13.2, 22.2], [53.0, 13.3, 22.4], [54.0, 13.4, 22.7], [55.0, 13.5, 22.9], [56.0, 13.6, 23.2], [57.0, 13.7, 23.4], [58.0, 13.8, 23.7], [59.0, 14.0, 23.9], [60.0, 14.1, 24.2]]
+    };
+
+    // OPA convention used here: 00=40mm Pink, 0=50mm Lt Blue, 1=60mm Black, 2=70mm White, 3=80mm Green, 4=90mm Yellow.
+    // Sizes now increase monotonically with weight/age.
+    const AIRWAY_BY_WEIGHT = [
+        { min: -1, max: 1, mask: "00", opaSize: "00", opaMm: "40", opaColor: "Pink", blade: "Miller 0", suction: "6", ett: "2.5u", depth: "7", lma: "1" },
+        { min: 1, max: 2, mask: "00", opaSize: "00", opaMm: "40", opaColor: "Pink", blade: "Miller 0", suction: "6", ett: "3.0u", depth: "8", lma: "1" },
+        { min: 2, max: 3, mask: "00", opaSize: "00", opaMm: "40", opaColor: "Pink", blade: "Miller 0-1", suction: "6", ett: "3c/3.5u", depth: "9", lma: "1" },
+        { min: 3, max: 4, mask: "0", opaSize: "0", opaMm: "50", opaColor: "Lt Blue", blade: "Miller 0-1", suction: "6", ett: "3c/3.5u", depth: "10", lma: "1" },
+        { min: 4, max: 6, mask: "0", opaSize: "0", opaMm: "50", opaColor: "Lt Blue", blade: "Miller 1/Wis 1.5", suction: "8", ett: "3c/3.5", depth: "12", lma: "1-1.5" },
+        { min: 6, max: 10, mask: "1", opaSize: "1", opaMm: "60", opaColor: "Black", blade: "Wis 1.5", suction: "8", ett: "3.5c/4u", depth: "13", lma: "1.5" },
+        { min: 10, max: 12, mask: "1", opaSize: "1", opaMm: "60", opaColor: "Black", blade: "Wis 1.5", suction: "8", ett: "4-4.5c", depth: "14", lma: "2" },
+        { min: 12, max: 16, mask: "2", opaSize: "1", opaMm: "60", opaColor: "Black", blade: "Wis 1.5/Mac 2", suction: "10", ett: "4.5c", depth: "15", lma: "2" },
+        { min: 16, max: 20, mask: "2", opaSize: "1-2", opaMm: "60-70", opaColor: "Black/White", blade: "Miller 2/Mac 2", suction: "10", ett: "4.5-5c", depth: "16", lma: "2" },
+        { min: 20, max: 30, mask: "2", opaSize: "2-3", opaMm: "70-80", opaColor: "White/Green", blade: "Miller 2/Mac 2", suction: "10", ett: "5-5.5c", depth: "17", lma: "2.5" },
+        { min: 30, max: 45, mask: "3", opaSize: "3", opaMm: "80", opaColor: "Green", blade: "Miller/Mac 2-3", suction: "12", ett: "5.5-6c", depth: "18", lma: "3" },
+        { min: 45, max: 9999, mask: "4", opaSize: "3-4", opaMm: "80-90", opaColor: "Green/Yellow", blade: "Miller/Mac 2-3", suction: "12", ett: "6.5-7c", depth: "20-22", lma: "4" }
+    ];
+
+    const AIRWAY_BY_AGE = [
+        { min: 0, max: 0.083, mask: "0", opaSize: "0", opaMm: "50", opaColor: "Lt Blue", blade: "Miller 0-1", suction: "6", ett: "3c/3.5u", depth: "10", lma: "1" },
+        { min: 0.083, max: 0.5, mask: "0", opaSize: "0", opaMm: "50", opaColor: "Lt Blue", blade: "Miller 1/Wis 1.5", suction: "8", ett: "3c/3.5", depth: "12", lma: "1-1.5" },
+        { min: 0.5, max: 1, mask: "1", opaSize: "1", opaMm: "60", opaColor: "Black", blade: "Wis 1.5", suction: "8", ett: "3.5c/4u", depth: "13", lma: "1.5" },
+        { min: 1, max: 2, mask: "1", opaSize: "1", opaMm: "60", opaColor: "Black", blade: "Wis 1.5", suction: "8", ett: "4-4.5c", depth: "14", lma: "2" },
+        { min: 2, max: 4, mask: "2", opaSize: "1", opaMm: "60", opaColor: "Black", blade: "Wis 1.5/Mac 2", suction: "10", ett: "4.5c", depth: "15", lma: "2" },
+        { min: 4, max: 6, mask: "2", opaSize: "1-2", opaMm: "60-70", opaColor: "Black/White", blade: "Miller 2/Mac 2", suction: "10", ett: "4.5-5c", depth: "16", lma: "2" },
+        { min: 6, max: 8, mask: "2", opaSize: "2-3", opaMm: "70-80", opaColor: "White/Green", blade: "Miller 2/Mac 2", suction: "10", ett: "5-5.5c", depth: "17", lma: "2.5" },
+        { min: 8, max: 12, mask: "3", opaSize: "3", opaMm: "80", opaColor: "Green", blade: "Miller/Mac 2-3", suction: "12", ett: "5.5-6c", depth: "18", lma: "3" },
+        { min: 12, max: 999, mask: "4", opaSize: "3-4", opaMm: "80-90", opaColor: "Green/Yellow", blade: "Miller/Mac 2-3", suction: "12", ett: "6.5-7c", depth: "20-22", lma: "4" }
+    ];
+
+    // AHA PALS normal ranges (awake)
+    const VITALS = [
+        { maxMonths: 1,   hr: "100 - 205", rr: "30 - 53" },  // neonate
+        { maxMonths: 12,  hr: "100 - 180", rr: "30 - 53" },  // infant
+        { maxMonths: 36,  hr: "98 - 140",  rr: "22 - 37" },  // toddler 1-2 y
+        { maxMonths: 72,  hr: "80 - 120",  rr: "20 - 28" },  // preschool 3-5 y
+        { maxMonths: 144, hr: "75 - 118",  rr: "18 - 25" },  // school 6-11 y
+        { maxMonths: Infinity, hr: "60 - 100", rr: "12 - 20" } // adolescent
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const num = (id) => { const v = $(id).value; return v === "" ? NaN : parseFloat(v); };
+
+    // ---------- QUICK-FILL PARSER ----------
+    // Reads weight (kg / g), height (cm), age (tahun/bulan/minggu/hari), gender, Hct, puasa (jam).
+    function parsePatientText(text) {
+        const out = {};
+
+        // Several patients pasted at once (WhatsApp handover)? Use only the first one.
+        // A patient header looks like "Nama/P/49th/..." or "Nama/L/4 th 9 bln/...".
+        const lines = text.split(/\r?\n/);
+        const headerIdx = lines.map((l, i) => /\/\s*[LP]\s*\//i.test(l) ? i : -1).filter(i => i >= 0);
+        if (headerIdx.length >= 2) {
+            out.multi = headerIdx.length;
+            text = lines.slice(0, headerIdx[1]).join('\n');
+        }
+
+        // Clean WhatsApp formatting: *bold*, _italic_, emoji arrows, decimal commas
+        const clean = text
+            .replace(/[*_~]/g, ' ')
+            .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}‍️]/gu, ' ')
+            .replace(/(\d),(\d)/g, '$1.$2');
+        const s = ' ' + clean.toLowerCase() + ' ';
+        const N = '(\\d+(?:\\.\\d+)?)';
+        let m;
+
+        // Weight: "12.5 kg", "BB 12.5", "BB: 12,5", "2800 gr"
+        if ((m = s.match(new RegExp('\\b(?:bb|berat(?:\\s*badan)?|bw|wt)\\s*[:=]?\\s*' + N + '\\s*(?:kg)?(?![\\d.]|\\s*(?:g|gr|gram)\\b)')))) out.weight = parseFloat(m[1]);
+        else if ((m = s.match(new RegExp(N + '\\s*(?:kg|kgbb|kilo)\\b')))) out.weight = parseFloat(m[1]);
+        else if ((m = s.match(new RegExp(N + '\\s*(?:g|gr|gram)\\b(?!\\s*\\/)')))) out.weight = parseFloat(m[1]) / 1000;
+
+        // Height: "TB 88", "PB 50", "88 cm" (labelled value preferred over any stray "cm")
+        if ((m = s.match(new RegExp('\\b(?:tb|pb|tinggi(?:\\s*badan)?|panjang(?:\\s*badan)?)\\s*[:=]?\\s*' + N)))) out.height = parseFloat(m[1]);
+        else if ((m = s.match(new RegExp(N + '\\s*cm\\b')))) out.height = parseFloat(m[1]);
+
+        // Age: header "/49th/" or "/4 th 9 bln/" first, then anywhere
+        const ageSrc = (s.match(/\/\s*[lp]\s*\/([^\/\n]{1,25})\//) || [])[1] || s;
+        let years = null, months = null;
+        if ((m = ageSrc.match(new RegExp(N + '\\s*(?:tahun|thn|th|yo|y\\.?o\\.?|yrs?|years?|y)\\b')))) years = parseFloat(m[1]);
+        if ((m = ageSrc.match(new RegExp(N + '\\s*(?:bulan|bln|bl|mo|mos|months?|mth)\\b')))) months = parseFloat(m[1]);
+        if (years === null && months === null && (m = ageSrc.match(new RegExp(N + '\\s*(?:minggu|mgg|wk|wks|weeks?)\\b')))) months = parseFloat(m[1]) * 7 / 30.44;
+        if (years === null && months === null && (m = ageSrc.match(new RegExp(N + '\\s*(?:hari|days?)\\b')))) months = parseFloat(m[1]) / 30.44;
+        if (years === null && months === null && (m = s.match(new RegExp('\\b(?:usia|umur|age)\\s*[:=]?\\s*' + N)))) years = parseFloat(m[1]);
+        if (years !== null || months !== null) {
+            let total = (years || 0) * 12 + (months || 0);
+            total = Math.round(total * 10) / 10;
+            out.ageYear = Math.floor(total / 12);
+            out.ageMonth = Math.floor(total - out.ageYear * 12);
+        }
+
+        // Gender: header "/P/" or "/L/" first, then words
+        const sg = s.replace(/\bby\.?\s*ny\.?\s/g, ' by ');   // "By. Ny X" = baby of Mrs X, not female
+        if ((m = s.match(/\/\s*([lp])\s*\//))) out.gender = m[1] === 'l' ? 'male' : 'female';
+        else if (/\b(?:perempuan|wanita|female|girl)\b|\b(?:ny|nn|nona)\.?\s/.test(sg)) out.gender = 'female';
+        else if (/\b(?:laki(?:-laki)?|pria|male|boy)\b|\btn\.?\s/.test(sg)) out.gender = 'male';
+        else if ((m = sg.match(/(?:^|[\s(,;])([lp])(?=[\s),;.]|$)/))) out.gender = m[1] === 'l' ? 'male' : 'female';
+
+        // Hct: "Hb/Ht: 12.0 / 36.3" takes the second number; else "Hct 34" / "Ht 34"
+        if ((m = s.match(new RegExp('\\bhb\\s*\\/\\s*h(?:c)?t\\s*[:=]?\\s*' + N + '\\s*%?\\s*\\/\\s*' + N)))) out.hctInit = parseFloat(m[2]);
+        else if ((m = s.match(new RegExp('\\b(?:hct|hematokrit|ht)\\s*[:=]?\\s*' + N + '(?![\\d.]|\\s*cm)')))) out.hctInit = parseFloat(m[1]);
+        if (out.hctInit !== undefined && (out.hctInit < 10 || out.hctInit > 75)) delete out.hctInit;
+
+        // Fasting: "Puasa ... 8 jam" preferred, else first "N jam"
+        if ((m = s.match(new RegExp('\\bpuasa[^\\n]{0,60}?' + N + '\\s*(?:jam|hours?|hrs?)\\b')))) out.ppHours = parseFloat(m[1]);
+        else if ((m = s.match(new RegExp('\\b(?:puasa|pp)\\s*[:=]?\\s*' + N)))) out.ppHours = parseFloat(m[1]);
+        else if ((m = s.match(new RegExp(N + '\\s*(?:jam|hours?|hrs?)\\b')))) out.ppHours = parseFloat(m[1]);
+
+        return out;
+    }
+
+    function onQuickInput() {
+        const parsed = parsePatientText($('quickInput').value);
+        const chips = [];
+        const set = (id, v) => { $(id).value = v; $(id).classList.remove('flash'); void $(id).offsetWidth; $(id).classList.add('flash'); };
+
+        if (parsed.weight !== undefined) { set('weight', +parsed.weight.toFixed(2)); chips.push(`BB ${+parsed.weight.toFixed(2)} kg`); }
+        if (parsed.height !== undefined) { set('height', parsed.height); chips.push(`TB ${parsed.height} cm`); }
+        if (parsed.ageYear !== undefined) {
+            set('ageYear', parsed.ageYear); set('ageMonth', parsed.ageMonth);
+            chips.push(`Usia ${parsed.ageYear} th ${parsed.ageMonth} bln`);
+        }
+        if (parsed.gender) { $('gender').value = parsed.gender; chips.push(parsed.gender === 'male' ? 'Laki-laki' : 'Perempuan'); }
+        if (parsed.hctInit !== undefined) { set('hctInit', parsed.hctInit); chips.push(`Hct ${parsed.hctInit}%`); }
+        if (parsed.ppHours !== undefined) { set('ppHours', parsed.ppHours); chips.push(`Puasa ${parsed.ppHours} jam`); }
+
+        $('quickChips').innerHTML = (chips.length
+            ? chips.map(c => `<span class="chip">✓ ${c}</span>`).join('')
+            : '<span class="chip none">Belum ada data terbaca</span>')
+            + (parsed.multi ? `<span class="chip warn">⚠ ${parsed.multi} pasien terdeteksi, hanya pasien pertama dipakai</span>` : '');
+        if (chips.length) userEdit(); else calculate();
+    }
+
+    function clearQuick() {
+        $('quickInput').value = '';
+        $('quickChips').innerHTML = '<span class="chip none">Belum ada data terbaca</span>';
+    }
+
+    // ---------- SHARED PATIENT ----------
+    function userEdit() {
+        if (window.PatientStore) {
+            PatientStore.set({
+                weight: num('weight'), height: num('height'),
+                ageYear: num('ageYear'), ageMonth: num('ageMonth'),
+                gender: $('gender').value
+            });
+        }
+        calculate();
+    }
+
+    function applyPatient(p) {
+        if (!p) return;
+        if (isFinite(p.weight)) $('weight').value = p.weight;
+        if (isFinite(p.height)) $('height').value = p.height;
+        if (isFinite(p.ageYear)) $('ageYear').value = p.ageYear;
+        if (isFinite(p.ageMonth)) $('ageMonth').value = p.ageMonth;
+        if (p.gender) $('gender').value = p.gender;
+        calculate();
+    }
+
+    // ---------- HELPERS ----------
+    function getWeightRange(gender, ageMonths) {
+        const data = growthData[gender];
+        if (!data || isNaN(ageMonths) || ageMonths > 60.5) return "- (data 0-60 bln)";
+        let closest = data[0];
+        let minDiff = Math.abs(data[0][0] - ageMonths);
+        for (let i = 1; i < data.length; i++) {
+            const diff = Math.abs(data[i][0] - ageMonths);
+            if (diff < minDiff) { minDiff = diff; closest = data[i]; }
+        }
+        return `${closest[1].toFixed(1)} - ${closest[2].toFixed(1)} kg`;
+    }
+
+    function getAirwayData(value, dataset) {
+        if (value === null || isNaN(value)) return null;
+        for (let row of dataset) { if (value >= row.min && value < row.max) return row; }
+        return null;
+    }
+
+    function formatColorText(colorStr) {
+        if (!colorStr) return "";
+        const colorMap = { "Black": "#000", "Pink": "#E91E63", "Lt Blue": "#00BFFF", "Green": "#2ecc71", "Yellow": "#f1c40f", "White": "#7f8c8d" };
+        return colorStr.split('/').map(p => `<span class="color-text" style="color:${colorMap[p.trim()] || "#000"}">${p}</span>`).join('/');
+    }
+
+    // Holliday-Segar 4-2-1 (ml/hr)
+    function hollidaySegar(w) {
+        if (w <= 10) return 4 * w;
+        if (w <= 20) return 40 + 2 * (w - 10);
+        return 60 + (w - 20);
+    }
+
+    const fmt = (v, d = 0) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+    const dual = (a, b, unit) => `
+        <span class="calc-weight"><span class="calc-label">4-2-1</span> ${a} ${unit}</span>
+        <span class="calc-age"><span class="calc-label">2cc</span> ${b} ${unit}</span>`;
+
+    // ---------- MAIN ----------
+    function calculate() {
+        const ageY = Math.max(0, num('ageYear') || 0);
+        const ageM = Math.max(0, num('ageMonth') || 0);
+        const weight = num('weight');
+        const height = num('height');
+        const gender = $('gender').value;
+        const ppHours = Math.max(0, num('ppHours') || 0);
+        const relFactor = parseFloat($('relFactor').value) || 0;
+        const hctInit = num('hctInit');
+
+        const hasWeight = isFinite(weight) && weight > 0;
+        const totalMonths = (ageY * 12) + ageM;
+        const totalYears = totalMonths / 12;
+
+        $('resEstWeight').innerText = getWeightRange(gender, totalMonths);
+
+        let minSBP = "-";
+        if (totalMonths < 1) minSBP = "< 60 mm Hg";
+        else if (totalMonths < 12) minSBP = "< 70 mm Hg";
+        else if (totalYears < 10) minSBP = `< ${70 + (2 * Math.floor(totalYears))} mm Hg`;
+        else minSBP = "< 90 mm Hg";
+        $('resMinSBP').innerText = minSBP;
+
+        const isAdult = totalYears >= 18;
+        let pbw = NaN;
+        if (isFinite(height) && height > 0) {
+            const base = gender === 'male' ? 50 : 45.5;
+            pbw = base + 0.91 * (height - 152.4);
+            $('resPBW').innerText = pbw > 0 ? pbw.toFixed(1) + " kg" : "- (TB terlalu pendek)";
+        } else $('resPBW').innerText = "-";
+
+        const wData = hasWeight ? getAirwayData(weight, AIRWAY_BY_WEIGHT) : null;
+        const aData = getAirwayData(totalYears, AIRWAY_BY_AGE);
+
+        const renderDual = (k) => `
+            <span class="calc-weight"><span class="calc-label">Wt</span> ${wData ? wData[k] : "-"}</span>
+            <span class="calc-age"><span class="calc-label">Age</span> ${aData ? aData[k] : "-"}</span>`;
+
+        ['ett', 'depth', 'blade', 'lma', 'mask', 'suction'].forEach(k => {
+            const id = { ett: 'resETT', depth: 'resDepth', blade: 'resBlade', lma: 'resLMA', mask: 'resMask', suction: 'resSuction' }[k];
+            $(id).innerHTML = renderDual(k);
+        });
+        const opa = (d) => d ? `${d.opaMm}mm (size ${d.opaSize}), ${formatColorText(d.opaColor)}` : "-";
+        $('resOPA').innerHTML = `
+            <span class="calc-weight"><span class="calc-label">Wt</span> ${opa(wData)}</span>
+            <span class="calc-age"><span class="calc-label">Age</span> ${opa(aData)}</span>`;
+
+        const v = VITALS.find(r => totalMonths < r.maxMonths) || VITALS[VITALS.length - 1];
+        $('resHR').innerText = v.hr;
+        $('resRR').innerText = v.rr;
+        // Adults (≥18 th): VT & MV use PBW when TB is filled; children use actual weight
+        const usePBW = isAdult && pbw > 0;
+        const ventW = usePBW ? pbw : weight;
+        const basis = usePBW ? " (PBW)" : (isAdult ? " (BB aktual, isi TB untuk PBW)" : "");
+        $('resVT').innerText = (usePBW || hasWeight) ? fmt(6 * ventW) + " - " + fmt(8 * ventW) + " ml" + basis : "-";
+
+        // Minute volume (manual override supported)
+        let mvMin = totalMonths <= 1 ? 250 : (totalYears <= 16 ? 100 : 80);
+        let mvMax = totalMonths <= 1 ? 250 : (totalYears <= 16 ? 200 : 100);
+        const mvOn = $('mvOverrideToggle').checked;
+        $('mvOverrideValue').style.display = mvOn ? "inline-block" : "none";
+        if (mvOn) { const o = parseFloat($('mvOverrideValue').value); if (isFinite(o)) { mvMin = o; mvMax = o; } }
+        $('resMVFactor').innerText = mvMin === mvMax ? `${mvMin} ml/kg` : `${mvMin} - ${mvMax} ml/kg`;
+        $('resMV').innerText = (usePBW || hasWeight)
+            ? (mvMin === mvMax ? `${fmt(mvMin * ventW)} ml/min` : `${fmt(mvMin * ventW)} - ${fmt(mvMax * ventW)} ml/min`) + basis
+            : "-";
+
+        const weightIds = ['resEBVFactor', 'resEBV', 'resMaint', 'resREL', 'resPP', 'resKC1', 'resKC2', 'resKC4',
+                           'resEpi', 'resEphedrine', 'resAtropine', 'resArmitageLow', 'resArmitageHigh'];
+        if (!hasWeight) {
+            weightIds.forEach(id => $(id).innerText = "-");
+            $('ablSection').innerHTML = "";
+            $('medsList').innerHTML = "";
+            return;
+        }
+
+        // EBV (manual override supported)
+        let ebvF = (totalMonths < 1) ? 85 : (totalMonths < 12 ? 80 : (isAdult ? (gender === 'male' ? 70 : 65) : 75));
+        const ebvOn = $('ebvOverrideToggle').checked;
+        $('ebvOverrideValue').style.display = ebvOn ? "inline-block" : "none";
+        if (ebvOn) { const o = parseFloat($('ebvOverrideValue').value); if (isFinite(o)) ebvF = o; }
+        $('resEBVFactor').innerText = ebvF + " ml/kg";
+        const ebv = weight * ebvF;
+        $('resEBV').innerText = fmt(ebv) + " ml";
+
+        let ablHtml = "";
+        if (isFinite(hctInit) && hctInit > 0) {
+            [30, 27, 24, 21].forEach(t => {
+                const vol = hctInit > t ? (ebv * (hctInit - t)) / hctInit : 0;
+                ablHtml += `<div class="result-row"><span class="result-label">Hct ${t}%</span><span class="result-value">${fmt(vol)} ml</span></div>`;
+            });
+        }
+        $('ablSection').innerHTML = ablHtml;
+
+        // Fluids: 4-2-1 on top, 2 cc/kg below
+        const mHS = hollidaySegar(weight);
+        const m2 = 2 * weight;
+        const rel = relFactor * weight;
+        const ppHS = mHS * ppHours, pp2 = m2 * ppHours;
+        $('resMaint').innerHTML = dual(fmt(mHS), fmt(m2), "ml/jam");
+        $('resREL').innerText = fmt(rel) + " ml/jam";
+        $('resPP').innerHTML = dual(fmt(ppHS), fmt(pp2), "ml");
+        $('resKC1').innerHTML = dual(fmt(mHS + rel + 0.5 * ppHS), fmt(m2 + rel + 0.5 * pp2), "ml");
+        $('resKC2').innerHTML = dual(fmt(mHS + rel + 0.25 * ppHS), fmt(m2 + rel + 0.25 * pp2), "ml");
+        $('resKC4').innerHTML = dual(fmt(mHS + rel), fmt(m2 + rel), "ml");
+
+        // Medications (ranges kept, label "unit" as before)
+        const meds = [
+            { n: "Fentanyl", d: "1-2 mcg", lo: 1, hi: 2 },
+            { n: "Propofol", d: "1-2 mg", lo: 1, hi: 2 },
+            { n: "Atracurium", d: "0.5 mg", lo: 0.5, hi: 0.5 }
+        ];
+        $('medsList').innerHTML = meds.map(m => {
+            const val = m.lo === m.hi ? fmt(m.lo * weight, 1) : `${fmt(m.lo * weight, 1)} - ${fmt(m.hi * weight, 1)}`;
+            return `<div class="result-row"><span class="result-label">${m.n} (${m.d}/kg)</span><span class="result-value">${val} unit</span></div>`;
+        }).join('');
+
+        // Emergency with max caps
+        const epi = Math.min(10 * weight, 1000);
+        $('resEpi').innerHTML = fmt(epi) + " mcg" + (10 * weight > 1000 ? ' <span class="cap-note">(max dose)</span>' : '');
+        $('resEphedrine').innerText = fmt(0.1 * weight, 1) + " - " + fmt(0.3 * weight, 1) + " mg";
+        const atLo = Math.min(0.01 * weight, 0.5), atHi = Math.min(0.02 * weight, 0.5);
+        $('resAtropine').innerHTML = (atLo === atHi ? fmt(atLo, 2) : fmt(atLo, 2) + " - " + fmt(atHi, 2)) + " mg"
+            + (0.02 * weight > 0.5 ? ' <span class="cap-note">(capped at max)</span>' : '');
+
+        $('resArmitageLow').innerText = fmt(0.5 * weight, 1) + " ml";
+        $('resArmitageHigh').innerText = fmt(1.0 * weight, 1) + " ml";
+    }
+
+    window.addEventListener('load', () => {
+        if (window.PatientStore) {
+            applyPatient(PatientStore.get());
+            PatientStore.onChange(applyPatient);
+        }
+        calculate();
+    });
+</script>
+</body>
+</html>

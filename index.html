@@ -71,6 +71,7 @@
             transition: all 0.2s;
             text-transform: uppercase;
         }
+        .tool-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
         .tool-btn:hover {
             opacity: 0.9;
             transform: translateY(-1px);
@@ -127,23 +128,15 @@
 
     <div class="nav-grid">
         <button class="tool-btn" onclick="toggleFrame('neopad', this)">Neopad</button>
-        <button class="tool-btn" onclick="toggleFrame('maintenance', this)">Maintenance</button>
         <button class="tool-btn" onclick="toggleFrame('vaso', this)">Vasoactive</button>
-        <button class="tool-btn" onclick="toggleFrame('ews', this)">EWS</button>
         <button class="tool-btn" onclick="toggleFrame('bga', this)">BGA Calc</button>
-        <button class="tool-btn" onclick="toggleFrame('dilution', this)">Dilution</button>
         <button class="tool-btn" onclick="toggleFrame('resident', this)">Resident Log</button>
         <button class="tool-btn" onclick="toggleFrame('sanitizer', this)">Sanitizer</button>
     </div>
 
     <div id="frame-neopad" class="iframe-wrapper">
-        <h3>Pediatric Calculator</h3>
+        <h3>Neopad (Pediatrik &amp; Dewasa)</h3>
         <iframe src="1neopad.html" style="height:1600px;" loading="lazy"></iframe>
-    </div>
-
-    <div id="frame-maintenance" class="iframe-wrapper">
-        <h3>Fluid Maintenance</h3>
-        <iframe src="2maintenance.html" style="height:1200px;" loading="lazy"></iframe>
     </div>
 
     <div id="frame-vaso" class="iframe-wrapper">
@@ -151,19 +144,9 @@
         <iframe src="3vasoactive.html" style="height:1200px;" loading="lazy"></iframe>
     </div>
 
-    <div id="frame-ews" class="iframe-wrapper">
-        <h3>Early Warning Score</h3>
-        <iframe src="4EWS.html" style="height:1800px;" loading="lazy"></iframe>
-    </div>
-
     <div id="frame-bga" class="iframe-wrapper">
         <h3>Blood Gas Analysis</h3>
         <iframe src="5BGA.html" style="height:1200px;" loading="lazy"></iframe>
-    </div>
-
-    <div id="frame-dilution" class="iframe-wrapper">
-        <h3>Dilution Calculator</h3>
-        <iframe src="6dilution.html" style="height:1200px;" loading="lazy"></iframe>
     </div>
 
     <div id="frame-resident" class="iframe-wrapper">

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Expert BGA Interpreter</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #2980b9;
+            --light: #ecf0f1;
+            --border: #bdc3c7;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #c0392b;
+            --math-bg: #f8f9fa;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-top: 0;
+            border-bottom: 3px solid var(--accent);
+            padding-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        
+        /* Input Section */
+        .section-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: 600;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        textarea {
+            width: 100%;
+            height: 140px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            box-sizing: border-box;
+            resize: vertical;
+            background-color: #fafafa;
+        }
+        textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+            color: #7f8c8d;
+        }
+        .toggle-btn.active {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 2px 5px rgba(41, 128, 185, 0.3);
+        }
+        .parse-btn {
+            background-color: var(--success);
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .parse-btn:hover { background-color: #219150; }
+
+        /* Manual Input Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Widened for alt units */
+            gap: 12px;
+            margin-top: 15px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        .input-wrapper { display: flex; flex-direction: column; }
+        .input-wrapper label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #576574;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        /* Flex container for Input + Alt Unit */
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-weight: 500;
+            min-width: 0; /* Prevents overflow */
+        }
+        .alt-unit {
+            font-size: 0.75em;
+            color: #333;
+            opacity: 0.5; /* 50% less transparent/visible per request */
+            white-space: nowrap;
+            min-width: 60px;
+        }
+
+        /* Results */
+        .interpretation-box {
+            background: #eef7fd;
+            border-left: 5px solid var(--accent);
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .interpretation-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .interpretation-main {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0;
+            margin-bottom: 20px;
+            background: white;
+            overflow: hidden;
+        }
+        .panel-header {
+            background: #f1f2f6;
+            padding: 10px 15px;
+            font-weight: 700;
+            color: #57606f;
+            border-bottom: 1px solid var(--border);
+        }
+        .panel-content { padding: 15px; }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .result-row:last-child { border-bottom: none; }
+        .res-label { font-weight: 500; color: #636e72; }
+        .res-val { font-weight: 700; color: var(--primary); font-family: monospace; font-size: 1.1em;}
+
+        /* Math Display */
+        .math-block {
+            background-color: var(--math-bg);
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .math-title {
+            font-weight: bold;
+            color: var(--accent);
+            margin-bottom: 4px;
+            display: block;
+        }
+        .math-eq { color: #555; display: block; margin-bottom: 4px; font-style: italic;}
+        .math-res { font-weight: bold; color: #333; }
+        .status-tag {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            margin-left: 5px;
+        }
+
+        /* Status Colors */
+        .acid { color: var(--danger); }
+        .acid-bg { background-color: var(--danger); }
+        .alk { color: var(--accent); }
+        .alk-bg { background-color: var(--accent); }
+        .normal { color: var(--success); }
+        .normal-bg { background-color: var(--success); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Clinical BGA Interpreter</h1>
+
+    <div class="controls">
+        <div class="toggle-btn active" id="btnAcute" onclick="setChronicity('acute')">Acute</div>
+        <div class="toggle-btn" id="btnChronic" onclick="setChronicity('chronic')">Chronic</div>
+    </div>
+
+    <div class="section-header">1. Data Import</div>
+    <textarea id="rawInput" placeholder="Paste hasil BGA langsung dari EMR / printout analyzer. Format bebas, satu parameter per baris, mis.:
+pH 7.32
+pCO2: 48 mmHg
+cHCO3- 21.5
+Na+ 138
+Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim ke mana pun."></textarea>
+    <button class="parse-btn" onclick="processInput()">Analyze Data</button>
+
+    <div class="section-header">2. Clinical Parameters</div>
+    <div class="input-grid">
+        <div class="input-wrapper">
+            <label>Temp (°C)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_temp" oninput="runCalc()">
+                <span id="alt_temp" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>pH</label>
+            <div class="input-row">
+                <input type="number" step="0.01" id="in_pH" oninput="runCalc()">
+                <span class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>PaCO2 (mmHg)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_pco2" oninput="runCalc()">
+                <span id="alt_pco2" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>HCO3 Act (mmol/L)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_hco3" oninput="runCalc()">
+                <span id="alt_hco3" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>Na+ (mmol/L)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_na" oninput="runCalc()">
+                <span id="alt_na" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>Cl- (mmol/L)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_cl" oninput="runCalc()">
+                <span id="alt_cl" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>Albumin (g/dL)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_alb" value="4.0" oninput="runCalc()">
+                <span id="alt_alb" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>Lactate (mmol/L)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_lac" oninput="runCalc()">
+                <span id="alt_lac" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>PaO2 (mmHg)</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_po2" oninput="runCalc()">
+                <span id="alt_po2" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>FiO2 (frac)</label>
+            <div class="input-row">
+                <input type="number" step="0.01" id="in_fio2" value="0.21" oninput="runCalc()">
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>Base Excess</label>
+            <div class="input-row">
+                <input type="number" step="0.1" id="in_be" oninput="runCalc()">
+                <span id="alt_be" class="alt-unit"></span>
+            </div>
+        </div>
+        
+        <div class="input-wrapper">
+            <label>Glucose (mg/dL)</label>
+            <div class="input-row">
+                <input type="number" step="1" id="in_gluc" oninput="runCalc()">
+                <span id="alt_gluc" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>BUN (mg/dL)</label>
+            <div class="input-row">
+                <input type="number" step="1" id="in_bun" oninput="runCalc()">
+                <span id="alt_bun" class="alt-unit"></span>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <label>Meas. Osmolality</label>
+            <div class="input-row">
+                <input type="number" step="1" id="in_osmo" placeholder="mOsm/kg" oninput="runCalc()">
+            </div>
+        </div>
+    </div>
+
+    <div class="section-header">3. Interpretation</div>
+    
+    <div class="interpretation-box">
+        <div class="interpretation-title">Primary Diagnosis</div>
+        <div id="interpretationBox" class="interpretation-main">Waiting for data...</div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">Derived Metrics</div>
+        <div class="panel-content">
+            <div class="result-row"><span class="res-label">pH Status</span><span id="out_ph_status" class="res-val">-</span></div>
+            <div class="result-row"><span class="res-label">PaO2 / FiO2 Ratio</span><span id="out_pf_ratio" class="res-val">-</span></div>
+            <div class="result-row"><span class="res-label">Anion Gap (Calc)</span><span id="out_ag" class="res-val">-</span></div>
+            <div class="result-row"><span class="res-label">Corrected AG (Alb)</span><span id="out_ag_corr" class="res-val">-</span></div>
+            <div class="result-row"><span class="res-label">Delta Ratio</span><span id="out_delta" class="res-val">-</span></div>
+            <div class="result-row"><span class="res-label">Osmolar Gap</span><span id="out_osmo_gap" class="res-val">-</span></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">Compensation Analysis & Formulas</div>
+        <div class="panel-content" id="compAnalysis">
+            <div style="color:#999; font-style:italic;">Calculations will appear here.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- State Management ---
+    let isChronic = false;
+
+    // --- UI Helpers ---
+    function setChronicity(type) {
+        isChronic = (type === 'chronic');
+        document.getElementById('btnAcute').className = isChronic ? 'toggle-btn' : 'toggle-btn active';
+        document.getElementById('btnChronic').className = isChronic ? 'toggle-btn active' : 'toggle-btn';
+        runCalc();
+    }
+
+    // --- Parser ---
+    // Accepts raw EMR / analyzer text ("pH 7.32", "pCO2: 48 mmHg", tab-separated) or CSV.
+    function parseBgaText(text) {
+        const found = {};
+        const isT = {};   // remembers values that came from temperature-corrected (T) rows
+        const put = (name, v, tCorr) => {
+            if (found[name] === undefined || (isT[name] && !tCorr)) { found[name] = v; isT[name] = tCorr; }
+        };
+
+        text.split(/\r?\n/).forEach(rawLine => {
+            const line = rawLine.replace(/[*#]/g, '').trim();
+            if (!line) return;
+            let key, valStr;
+            if ((line.match(/,/g) || []).length >= 2 || /^[^,]+,\s*-?\d/.test(line) && !/\d,\d/.test(line)) {
+                const parts = line.split(',');
+                key = parts[0]; valStr = (parts[1] || '').trim();
+            } else {
+                const m = line.match(/^([^\d\-\s][^:=\t]*?)\s*(?:[:=\t]|\s)\s*(-?\d+(?:[.,]\d+)?)/);
+                if (!m) return;
+                key = m[1]; valStr = m[2];
+            }
+            let val = parseFloat(String(valStr).replace(',', '.'));
+            if (isNaN(val)) return;
+
+            const k = key.toLowerCase().replace(/\s+/g, '');
+            if (k === 'parameter') return;
+            const tCorr = /\(t\)/.test(k);
+            const base = k.replace(/\((t|p|a|aa)\)/g, '').replace(/,c$/, '');
+            const unit = rawLine.toLowerCase();
+
+            if (base === 'ph') put('ph', val, tCorr);
+            else if (base === 'pco2' || base === 'paco2') put('pco2', /kpa/.test(unit) ? val * 7.5 : val, tCorr);
+            else if (base === 'po2' || base === 'pao2') put('po2', /kpa/.test(unit) ? val * 7.5 : val, tCorr);
+            else if (base.includes('hco3') || base.includes('bicarb')) {
+                if (/\(st\)|std|standard|sbc/.test(base)) return;            // standard bicarbonate ignored
+                if (/act|^chco3/.test(base) || base === 'actualbicarbonate') put('hco3_act', val, false);
+                else put('hco3_gen', val, false);
+            }
+            else if (/^(c?na\+?|sodium|natrium)$/.test(base)) put('na', val, false);
+            else if (/^(c?cl-?|chloride|klorida)$/.test(base)) put('cl', val, false);
+            else if (base.includes('albumin') || base === 'alb') put('alb', /g\/l/.test(unit) && val > 10 ? val / 10 : val, false);
+            else if (base.includes('lact') || base === 'clac' || base === 'lac') put('lac', /mg\/dl/.test(unit) ? val / 9 : val, false);
+            else if (base.includes('fio2')) put('fio2', val, false);
+            else if (/^(be|be\(b\)|abe|cbase\(b\)|baseexcess(\(b\))?)$/.test(base)) put('be', val, false);
+            else if (/^(beecf|be\(ecf\)|sbe|cbase\(ecf\)|baseexcess\(ecf\))$/.test(base)) { if (found.be === undefined) found.be_ecf = val; }
+            else if (base.includes('glu') || base === 'gds' || base === 'guladarah') put('gluc', /mmol/.test(unit) ? val * 18 : val, false);
+            else if (base === 'bun') put('bun', /mmol/.test(unit) ? val * 2.8 : val, false);
+            else if (base === 'urea' || base === 'ureum') put('bun', /mmol/.test(unit) ? val * 2.8 : val / 2.14, false);
+            else if (base.includes('osmol') && (base.includes('meas') || base.includes('ukur'))) put('osmo', val, false);
+            else if (base.startsWith('temp') || base === 't' || base === 'suhu') put('temp', val, false);
+        });
+        if (found.be === undefined && found.be_ecf !== undefined) found.be = found.be_ecf;
+        return found;
+    }
+
+    function processInput() {
+        const text = document.getElementById('rawInput').value;
+        if (!text) return;
+        const found = parseBgaText(text);
+
+        let finalHCO3 = found.hco3_act !== undefined ? found.hco3_act : found.hco3_gen;
+        const setIn = (id, v) => { if (v !== undefined) document.getElementById(id).value = +(+v).toFixed(2); };
+        setIn('in_pH', found.ph);
+        setIn('in_pco2', found.pco2);
+        setIn('in_hco3', finalHCO3);
+        setIn('in_na', found.na);
+        setIn('in_cl', found.cl);
+        setIn('in_alb', found.alb);
+        setIn('in_lac', found.lac);
+        setIn('in_po2', found.po2);
+        setIn('in_be', found.be);
+        setIn('in_gluc', found.gluc);
+        setIn('in_bun', found.bun);
+        setIn('in_osmo', found.osmo);
+        setIn('in_temp', found.temp);
+        if (found.fio2 !== undefined) setIn('in_fio2', found.fio2 > 1 ? found.fio2 / 100 : found.fio2);
+
+        runCalc();
+    }
+
+    // --- Core Calculator ---
+    function runCalc() {
+        // Safe Value Getter
+        const val = (id) => {
+            const el = document.getElementById(id);
+            return el && el.value !== "" ? parseFloat(el.value) : null;
+        };
+
+        const pH = val('in_pH');
+        const pCO2 = val('in_pco2');
+        let HCO3 = val('in_hco3'); 
+        const Na = val('in_na');
+        const Cl = val('in_cl');
+        const Alb = val('in_alb') || 4.0;
+        const PaO2 = val('in_po2');
+        const FiO2 = val('in_fio2');
+        const BE = val('in_be');
+        const Temp = val('in_temp');
+        const Lac = val('in_lac');
+        
+        const Gluc = val('in_gluc');
+        const BUN = val('in_bun');
+        const MeasOsmo = val('in_osmo');
+
+        // --- Alternate Unit Displays ---
+        const setAlt = (id, text) => {
+            const el = document.getElementById(id);
+            if(el) el.innerText = text;
+        };
+
+        // Temperature (C -> F)
+        if(Temp !== null) setAlt('alt_temp', ((Temp * 1.8) + 32).toFixed(1) + " °F");
+        else setAlt('alt_temp', "");
+
+        // pCO2 (mmHg -> kPa) / 7.5
+        if(pCO2 !== null) setAlt('alt_pco2', (pCO2 / 7.5).toFixed(2) + " kPa");
+        else setAlt('alt_pco2', "");
+
+        // pO2 (mmHg -> kPa) / 7.5
+        if(PaO2 !== null) setAlt('alt_po2', (PaO2 / 7.5).toFixed(2) + " kPa");
+        else setAlt('alt_po2', "");
+
+        // HCO3 (mmol/L -> mEq/L) 1:1
+        if(HCO3 !== null) setAlt('alt_hco3', HCO3.toFixed(1) + " mEq/L");
+        else setAlt('alt_hco3', "");
+
+        // Na (mmol/L -> mEq/L) 1:1
+        if(Na !== null) setAlt('alt_na', Na.toFixed(0) + " mEq/L");
+        else setAlt('alt_na', "");
+
+        // Cl (mmol/L -> mEq/L) 1:1
+        if(Cl !== null) setAlt('alt_cl', Cl.toFixed(0) + " mEq/L");
+        else setAlt('alt_cl', "");
+
+        // BE (mmol/L -> mEq/L) 1:1
+        if(BE !== null) setAlt('alt_be', BE.toFixed(1) + " mEq/L");
+        else setAlt('alt_be', "");
+
+        // Albumin (g/dL -> mmol/L) * 10 / 66.5
+        if(Alb !== null) setAlt('alt_alb', ((Alb * 10) / 66.5).toFixed(2) + " mmol/L");
+        else setAlt('alt_alb', "");
+
+        // Lactate (mmol/L -> mg/dL) * 9
+        if(Lac !== null) setAlt('alt_lac', (Lac * 9).toFixed(1) + " mg/dL");
+        else setAlt('alt_lac', "");
+
+        // Glucose (mg/dL -> mmol/L) / 18
+        if(Gluc !== null) setAlt('alt_gluc', (Gluc / 18).toFixed(1) + " mmol/L");
+        else setAlt('alt_gluc', "");
+
+        // BUN (mg/dL -> mmol/L) / 2.8
+        if(BUN !== null) setAlt('alt_bun', (BUN / 2.8).toFixed(1) + " mmol/L");
+        else setAlt('alt_bun', "");
+
+
+        // --- Clinical Interpretation Logic (Preserved) ---
+        // Reset all derived outputs so nothing stale stays on screen
+        ['out_ph_status','out_pf_ratio','out_ag','out_ag_corr','out_delta','out_osmo_gap'].forEach(id => {
+            const el = document.getElementById(id); el.innerText = '-'; el.className = 'res-val';
+        });
+        document.getElementById('compAnalysis').innerHTML = '<div style="color:#999; font-style:italic;">Calculations will appear here.</div>';
+
+        if (pH === null || pCO2 === null) {
+            document.getElementById('interpretationBox').innerText = "Insufficient Data (pH & PaCO2 needed)";
+            return;
+        }
+
+        // 1. Calculate Actual HCO3 if missing
+        if (HCO3 === null) {
+            HCO3 = 0.03 * pCO2 * Math.pow(10, (pH - 6.1));
+            document.getElementById('in_hco3').value = HCO3.toFixed(1);
+            setAlt('alt_hco3', HCO3.toFixed(1) + " mEq/L");
+        }
+
+        // --- pH Status ---
+        let pHStatus = "Normal";
+        let pHClass = "normal";
+        if (pH < 7.35) { pHStatus = "Acidemia"; pHClass = "acid"; }
+        else if (pH > 7.45) { pHStatus = "Alkalemia"; pHClass = "alk"; }
+        
+        const elPh = document.getElementById('out_ph_status');
+        elPh.innerText = pHStatus;
+        elPh.className = "res-val " + pHClass;
+
+        // --- P/F Ratio ---
+        if (PaO2 && FiO2) {
+            const pf = (PaO2 / FiO2).toFixed(0);
+            let pfNote = "";
+            if (pf < 100) pfNote = " (Severe ARDS)";
+            else if (pf < 200) pfNote = " (Mod. ARDS)";
+            else if (pf < 300) pfNote = " (Mild ARDS)";
+            document.getElementById('out_pf_ratio').innerText = pf + pfNote + (pfNote ? " *if criteria met" : "");
+        }
+
+        // --- Primary Disorder ---
+        let primaryDx = [];
+        let isMetAcid = false, isMetAlk = false, isRespAcid = false, isRespAlk = false;
+
+        if (pH < 7.35) {
+            // Acidemia
+            if (pCO2 > 45) { isRespAcid = true; primaryDx.push("Respiratory Acidosis"); }
+            if (HCO3 < 22 || (BE && BE < -2)) { isMetAcid = true; primaryDx.push("Metabolic Acidosis"); }
+        } else if (pH > 7.45) {
+            // Alkalemia
+            if (pCO2 < 35) { isRespAlk = true; primaryDx.push("Respiratory Alkalosis"); }
+            if (HCO3 > 26 || (BE && BE > 2)) { isMetAlk = true; primaryDx.push("Metabolic Alkalosis"); }
+        } else {
+            // Normal pH
+            if (pCO2 > 45) isRespAcid = true;
+            else if (pCO2 < 35) isRespAlk = true;
+            if (HCO3 < 22) isMetAcid = true;
+            else if (HCO3 > 26) isMetAlk = true;
+
+            if (isRespAcid && isMetAlk) primaryDx.push("Resp. Acidosis + Met. Alkalosis");
+            if (isRespAlk && isMetAcid) primaryDx.push("Resp. Alkalosis + Met. Acidosis");
+            if (primaryDx.length === 0) {
+                if (isRespAcid) primaryDx.push("Resp. Acidosis with normal pH (compensated or mixed)");
+                else if (isRespAlk) primaryDx.push("Resp. Alkalosis with normal pH (compensated or mixed)");
+                else if (isMetAcid) primaryDx.push("Metabolic Acidosis with normal pH (compensated or mixed)");
+                else if (isMetAlk) primaryDx.push("Metabolic Alkalosis with normal pH (compensated or mixed)");
+                else primaryDx.push("Normal Acid-Base Status");
+            }
+        }
+
+        // --- Compensation & Formula Display ---
+        let compHTML = "";
+
+        const addMath = (title, eq, res, status) => {
+            let colorClass = status.includes("Acid") ? "acid-bg" : (status.includes("Alk") ? "alk-bg" : "normal-bg");
+            return `<div class="math-block">
+                <span class="math-title">${title} <span class="status-tag ${colorClass}">${status}</span></span>
+                <span class="math-eq">${eq}</span>
+                <span class="math-res">${res}</span>
+            </div>`;
+        };
+
+        if (isMetAcid) {
+            const expPCO2 = (1.5 * HCO3) + 8;
+            const min = expPCO2 - 2;
+            const max = expPCO2 + 2;
+            let status = "Compensated";
+            if (pCO2 < min) status = "Concomitant Resp. Alkalosis";
+            if (pCO2 > max) status = "Inadequate Comp. / Concomitant Resp. Acidosis";
+            
+            compHTML += addMath(
+                "Winter's Formula (Met. Acidosis)",
+                `Exp PaCO2 = (1.5 × ${HCO3.toFixed(1)}) + 8 ± 2`,
+                `Expected: ${min.toFixed(1)} - ${max.toFixed(1)} mmHg | Actual: ${pCO2} mmHg`,
+                status
+            );
+            
+            if (pCO2 < min && !primaryDx.some(d=>d.includes("Resp. Alkalosis"))) primaryDx.push("Concomitant Resp. Alkalosis");
+            if (pCO2 > max && !primaryDx.some(d=>d.includes("Resp. Acidosis"))) primaryDx.push("Concomitant Resp. Acidosis");
+        }
+
+        if (isMetAlk) {
+            const deltaHCO3 = HCO3 - 24;
+            const expRise = 0.7 * deltaHCO3;
+            const expPCO2 = 40 + expRise;
+            const min = expPCO2 - 5;
+            const max = expPCO2 + 5;
+            let status = "Compensated";
+            if (pCO2 < min) status = "Concomitant Resp. Alkalosis";
+            if (pCO2 > max) status = "Concomitant Resp. Acidosis";
+
+            compHTML += addMath(
+                "Met. Alkalosis Compensation",
+                `Exp PaCO2 = 40 + (0.7 × ΔHCO3 [${deltaHCO3.toFixed(1)}])`,
+                `Expected: ~${expPCO2.toFixed(1)} (Range ${min.toFixed(0)}-${max.toFixed(0)}) | Actual: ${pCO2}`,
+                status
+            );
+        }
+
+        if (isRespAcid) {
+            const deltaPCO2 = pCO2 - 40;
+            const acuteExp = 24 + (1 * (deltaPCO2 / 10));
+            const chronicExp = 24 + (4 * (deltaPCO2 / 10));
+            const target = isChronic ? chronicExp : acuteExp;
+            const min = target - 2; 
+            const max = target + 2;
+            let status = "Compensated";
+            if (HCO3 < min) status = "Concomitant Met. Acidosis";
+            if (HCO3 > max) status = "Concomitant Met. Alkalosis";
+
+            compHTML += addMath(
+                `Resp. Acidosis (${isChronic?'Chronic':'Acute'})`,
+                `Exp HCO3 = 24 + (${isChronic?'4':'1'} × ΔPaCO2/10 [${(deltaPCO2/10).toFixed(1)}])`,
+                `Expected: ${target.toFixed(1)} (±2) | Actual: ${HCO3}`,
+                status
+            );
+
+             if (HCO3 < min && !primaryDx.some(d=>d.includes("Metabolic Acidosis"))) primaryDx.push("Concomitant Met. Acidosis");
+             if (HCO3 > max && !primaryDx.some(d=>d.includes("Metabolic Alkalosis"))) primaryDx.push("Concomitant Met. Alkalosis");
+        }
+
+        if (isRespAlk) {
+            const deltaPCO2 = 40 - pCO2;
+            const acuteExp = 24 - (2 * (deltaPCO2 / 10));
+            const chronicExp = 24 - (5 * (deltaPCO2 / 10));
+            const target = isChronic ? chronicExp : acuteExp;
+            const min = target - 2;
+            const max = target + 2;
+            let status = "Compensated";
+            if (HCO3 < min) status = "Concomitant Met. Acidosis";
+            if (HCO3 > max) status = "Concomitant Met. Alkalosis";
+
+            compHTML += addMath(
+                `Resp. Alkalosis (${isChronic?'Chronic':'Acute'})`,
+                `Exp HCO3 = 24 - (${isChronic?'5':'2'} × ΔPaCO2/10 [${(deltaPCO2/10).toFixed(1)}])`,
+                `Expected: ${target.toFixed(1)} (±2) | Actual: ${HCO3}`,
+                status
+            );
+            
+            if (HCO3 < min && !primaryDx.some(d=>d.includes("Metabolic Acidosis"))) primaryDx.push("Concomitant Met. Acidosis");
+            if (HCO3 > max && !primaryDx.some(d=>d.includes("Metabolic Alkalosis"))) primaryDx.push("Concomitant Met. Alkalosis");
+        }
+
+        document.getElementById('compAnalysis').innerHTML = compHTML || "No primary disorder requiring compensation logic detected.";
+
+        // --- Anion Gap & Delta Ratio ---
+        let agVal = "-", agCorr = "-", deltaRatio = "-";
+        
+        if (Na && Cl && HCO3) {
+            const ag = Na - (Cl + HCO3);
+            agVal = ag.toFixed(1);
+            
+            let corrAG = ag;
+            if (Alb < 4.0) {
+                corrAG = ag + (2.5 * (4.0 - Alb));
+            }
+            agCorr = corrAG.toFixed(1);
+
+            if (corrAG > 12) {
+                if (primaryDx.some(d => d.startsWith("Metabolic Acidosis"))) {
+                    primaryDx = primaryDx.map(d => d.startsWith("Metabolic Acidosis") ? d.replace("Metabolic Acidosis", "HAGMA") : d);
+                } else {
+                    primaryDx.push("HAGMA (masked by another disorder)");
+                }
+                
+                const num = corrAG - 12;
+                const den = 24 - HCO3;
+                let deltaText = "";
+                if (den <= 0) {
+                     deltaText = "> 2.0 (HCO3 ≥ 24)";
+                     primaryDx.push("Concomitant Met. Alkalosis");
+                } else {
+                    const ratio = num / den;
+                    let note = "";
+                    if (ratio < 0.4) { note = " (NAGMA predominant)"; primaryDx.push("Hyperchloremic NAGMA"); }
+                    else if (ratio < 0.8) { note = " (HAGMA + NAGMA)"; primaryDx.push("Concomitant NAGMA"); }
+                    else if (ratio <= 2.0) { note = " (pure HAGMA)"; }
+                    else { note = " (HAGMA + Met. Alk / chronic Resp. Acid.)"; primaryDx.push("Concomitant Met. Alkalosis"); }
+                    deltaText = ratio.toFixed(2) + note;
+                }
+                deltaRatio = deltaText;
+            } 
+            else if (isMetAcid) {
+                primaryDx = primaryDx.map(d => d.startsWith("Metabolic Acidosis") ? d.replace("Metabolic Acidosis", "NAGMA") : d);
+            }
+        }
+
+        document.getElementById('out_ag').innerText = agVal;
+        document.getElementById('out_ag_corr').innerText = agCorr;
+        document.getElementById('out_delta').innerText = deltaRatio;
+
+        // --- Osmolar Gap ---
+        let osmoGapDisplay = "-";
+        if (Na !== null && Gluc !== null && BUN !== null && MeasOsmo !== null) {
+            // Calc Osmolality = 2 * Na + Glucose/18 + BUN/2.8
+            const calcOsm = (2 * Na) + (Gluc / 18) + (BUN / 2.8);
+            const gap = MeasOsmo - calcOsm;
+            
+            let gapNote = "";
+            if (gap > 10) {
+                gapNote = " (Abnormal > 10)";
+            }
+            osmoGapDisplay = `${gap.toFixed(1)} mOsm/kg${gapNote}`;
+        }
+        document.getElementById('out_osmo_gap').innerText = osmoGapDisplay;
+        if(osmoGapDisplay.includes("Abnormal")) {
+             document.getElementById('out_osmo_gap').className = "res-val acid";
+        } else {
+             document.getElementById('out_osmo_gap').className = "res-val";
+        }
+
+        // Final Deduplication of Diagnosis
+        let uniqueDx = [...new Set(primaryDx)];
+        document.getElementById('interpretationBox').innerText = uniqueDx.join(" + ");
+    }
+</script>
+
+</body>
+</html>
+
