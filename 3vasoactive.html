@@ -282,10 +282,25 @@
           steps: [0.375, 0.5, 0.75, 1.0] 
       },
       { 
-          name: "Adrenalin / Epinefrin", 
+          name: "Adrenalin / Epinefrin (1 mg)", 
           prep: "1 mg / 50 cc", 
           conc: 20, // mcg/cc
           steps: [0.01, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5] 
+      },
+      { 
+          name: "Adrenalin / Epinefrin (4 mg)", 
+          prep: "4 mg (4000 mcg) / 50 cc", 
+          conc: 80, // mcg/cc
+          steps: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0] 
+      },
+      { 
+          name: "Vasopressin (Farpresin)", 
+          prep: "1 vial (20 U) + 49 cc NS = 50 cc", 
+          conc: 0.4, // U/cc
+          mass: "U",
+          fixed: true, // dose in U/min, not weight-based
+          doseDigits: 3,
+          steps: [0.010, 0.015, 0.020, 0.025, 0.030, 0.035, 0.040, 0.045, 0.050, 0.055, 0.060, 0.065, 0.070, 0.075, 0.080, 0.085, 0.090, 0.095, 0.100] 
       },
       { 
           name: "Dexmedetomidine", 
@@ -303,6 +318,13 @@
           mass: "mg", // dose & concentration in mg
           perHour: true, // dose in mg/kg/jam
           steps: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0] 
+      },
+      { 
+          name: "Propofol", 
+          prep: "1% (10 mg/cc), tanpa pengenceran", 
+          conc: 10000, // mcg/cc
+          concLabel: "10 mg/cc",
+          steps: [25, 50, 75, 100, 125, 150, 175, 200] 
       }
   ];
 
@@ -344,11 +366,13 @@
           drug.steps.forEach(dose => {
               // mcg/kg/min: (Dose * BB * 60) / Conc ; mcg/kg/jam: (Dose * BB) / Conc
               // Result is cc/hour
-              const rate = weight > 0 ? (dose * weight * (drug.perHour ? 1 : 60)) / drug.conc : 0;
+              // Fixed (non weight-based) drugs: Dose * 60 / Conc
+              const perKg = drug.fixed ? 1 : weight;
+              const rate = (drug.fixed || weight > 0) ? (dose * perKg * (drug.perHour ? 1 : 60)) / drug.conc : 0;
               rows += `
                   <tr>
-                      <td>${dose}</td>
-                      <td class="calc-val">${rate > 0 ? rate.toFixed(drug.perHour ? 2 : 1) : "-"}</td>
+                      <td>${drug.doseDigits ? dose.toFixed(drug.doseDigits) : dose}</td>
+                      <td class="calc-val">${rate > 0 ? rate.toFixed(drug.perHour || drug.fixed ? 2 : 1) : "-"}</td>
                   </tr>
               `;
           });
@@ -364,7 +388,8 @@
                   </div>`;
           }
           const mass = drug.mass || 'mcg';
-          const unit = drug.perHour ? `${mass}/kg/jam` : `${mass}/kg/min`;
+          const kg = drug.fixed ? '' : '/kg';
+          const unit = drug.perHour ? `${mass}${kg}/jam` : `${mass}${kg}/min`;
 
           const card = document.createElement('div');
           // No inline margins here, controlled by grid gap
@@ -372,7 +397,7 @@
               <div class="section-header">${drug.name}</div>
               <div class="result-box">
                   <div class="info-meta">
-                      Prep: ${drug.prep} | Conc: ${drug.conc} ${mass}/cc
+                      Prep: ${drug.prep} | Conc: ${drug.concLabel || drug.conc + ' ' + mass + '/cc'}
                   </div>
                   ${loadingHtml}
                   ${drug.note ? `<div class="info-meta">${drug.note}</div>` : ''}
@@ -416,4 +441,3 @@
 
 </body>
 </html>
-
