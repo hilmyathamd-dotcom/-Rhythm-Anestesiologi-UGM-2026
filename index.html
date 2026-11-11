@@ -114,6 +114,15 @@
             padding: 10px 8px 4px;
         }
 
+        .usage {
+            font-size: 0.72rem;
+            color: #333;
+            opacity: 0.7;
+            text-align: center;
+            padding: 0 8px 6px;
+            min-height: 1em;
+        }
+
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -169,6 +178,7 @@
         Alat bantu hitung untuk tenaga medis. Hasil wajib diverifikasi dengan penilaian klinis, protokol institusi, dan referensi terkini.<br>
         Versi 2026.11.08
     </div>
+    <div id="usage" class="usage"></div>
 
 </div>
 
@@ -200,6 +210,66 @@
         navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
+    // ---------- Monthly usage counter ----------
+    // Uses the free Abacus counting API. Only a +1 is sent: no patient data, no inputs.
+    // "Kalkulasi" = a tool opened AND used (first input/click inside it), counted once per opening.
+    const COUNTER_NS = 'rhythm-anestesi-ugm';
+    const COUNTER_API = 'https://abacus.jasoncameron.dev';
+    const now = new Date();
+    const monthKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const monthLabel = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    const usage = { calc: null, visit: null };
+
+    function renderUsage() {
+        const el = document.getElementById('usage');
+        if (usage.calc === null && usage.visit === null) { el.textContent = ''; return; }
+        const f = (v) => v === null ? '–' : v.toLocaleString('id-ID');
+        el.textContent = `${monthLabel}: ${f(usage.calc)} kalkulasi · ${f(usage.visit)} kunjungan`;
+    }
+
+    async function counter(action, name) {
+        try {
+            const r = await fetch(`${COUNTER_API}/${action}/${COUNTER_NS}/${name}-${monthKey}`, { cache: 'no-store' });
+            if (r.status === 404) return 0;              // no hits yet this month
+            if (!r.ok) return null;
+            const j = await r.json();
+            return typeof j.value === 'number' ? j.value : null;
+        } catch (e) { return null; }                    // offline or service down: hide quietly
+    }
+
+    (async () => {
+        let firstVisit = true;
+        try { firstVisit = !sessionStorage.getItem('atb_visited'); sessionStorage.setItem('atb_visited', '1'); } catch (e) {}
+        const [v, c] = await Promise.all([counter(firstVisit ? 'hit' : 'get', 'visit'), counter('get', 'calc')]);
+        usage.visit = v; usage.calc = c; renderUsage();
+    })();
+
+    const pendingUse = {};   // tool name -> waiting for first interaction since it was opened
+    async function countCalc(name) {
+        if (!pendingUse[name]) return;
+        pendingUse[name] = false;
+        const v = await counter('hit', 'calc');
+        if (v !== null) { usage.calc = v; renderUsage(); }
+    }
+
+    function watchUse(iframe) {
+        try {
+            const doc = iframe.contentDocument;
+            if (!doc || doc.__usageWatched) return;
+            doc.__usageWatched = true;
+            const name = iframe.closest('.iframe-wrapper').id.replace('frame-', '');
+            const onUse = (e) => {
+                if (e.type === 'click' && !e.target.closest('button, .btn, label.b, .toggle-btn')) return;
+                countCalc(name);
+            };
+            ['input', 'change', 'click'].forEach(t => doc.addEventListener(t, onUse, true));
+        } catch (e) { /* not same-origin (e.g. opened as a local file) */ }
+    }
+    document.querySelectorAll('iframe').forEach(f => {
+        f.addEventListener('load', () => watchUse(f));
+        if (f.contentDocument && f.contentDocument.readyState === 'complete') watchUse(f);
+    });
+
     function toggleFrame(name, btnElement) {
         const targetId = 'frame-' + name;
         const targetEl = document.getElementById(targetId);
@@ -215,6 +285,7 @@
         if (!isCurrentlyOpen) {
             targetEl.classList.add('show');
             btnElement.classList.add('active');
+            pendingUse[name] = true;
             
             setTimeout(() => {
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
