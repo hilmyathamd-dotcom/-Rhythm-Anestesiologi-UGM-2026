@@ -205,10 +205,10 @@
             <div class="input-wrapper">
                 <label for="relFactor">REL</label>
                 <select id="relFactor" onchange="calculate()">
-                    <option value="2">Noninvasive (2 ml/kg/jam)</option>
-                    <option value="4" selected>Mildly invasive (4 ml/kg/jam)</option>
-                    <option value="8">Moderately invasive (8 ml/kg/jam)</option>
-                    <option value="10">Significantly invasive (≥10 ml/kg/jam)</option>
+                    <option value="2">Noninvasive (2 cc/kg/jam)</option>
+                    <option value="4" selected>Mildly invasive (4 cc/kg/jam)</option>
+                    <option value="8">Moderately invasive (8 cc/kg/jam)</option>
+                    <option value="10">Significantly invasive (≥10 cc/kg/jam)</option>
                 </select>
             </div>
             <div class="input-wrapper">
@@ -268,12 +268,12 @@
         <div class="result-row"><span class="result-label">Tidal Volume (VT)</span><span id="resVT" class="result-value">-</span></div>
 
         <div class="result-row">
-            <span class="result-label">MV Factor (ml/kg/min)</span>
+            <span class="result-label">MV Factor (cc/kg/min)</span>
             <span class="result-value">
                 <span id="resMVFactor">-</span>
                 <span class="manual-toggle-group">
                     <label class="manual-label"><input type="checkbox" id="mvOverrideToggle" onchange="calculate()"> Manual</label>
-                    <input type="number" id="mvOverrideValue" class="manual-input" inputmode="decimal" placeholder="ml/kg" oninput="calculate()">
+                    <input type="number" id="mvOverrideValue" class="manual-input" inputmode="decimal" placeholder="cc/kg" oninput="calculate()">
                 </span>
             </span>
         </div>
@@ -287,7 +287,7 @@
                 <span id="resEBVFactor">-</span>
                 <span class="manual-toggle-group">
                     <label class="manual-label"><input type="checkbox" id="ebvOverrideToggle" onchange="calculate()"> Manual</label>
-                    <input type="number" id="ebvOverrideValue" class="manual-input" inputmode="decimal" placeholder="ml/kg" oninput="calculate()">
+                    <input type="number" id="ebvOverrideValue" class="manual-input" inputmode="decimal" placeholder="cc/kg" oninput="calculate()">
                 </span>
             </span>
         </div>
@@ -313,9 +313,9 @@
         <div class="result-row"><span class="result-label">Atropin (0.01-0.02 mg/kg, max 0.5 mg)</span><span id="resAtropine" class="result-value">-</span></div>
 
         <div class="section-header">CAUDAL</div>
-        <div class="caudal-row"><label for="caudalAgent">Agen</label><input type="text" id="caudalAgent" class="caudal-input" placeholder="mis. Bupivacaine 0.25%"></div>
-        <div class="caudal-row"><label for="caudalTarget">Target</label><input type="text" id="caudalTarget" class="caudal-input" placeholder="mis. Sacral / Lumbar, volume"></div>
-        <div class="caudal-row"><label for="caudalTest">Test dose</label><input type="text" id="caudalTest" class="caudal-input" placeholder="mis. 0.1 ml/kg + epi 1:200.000"></div>
+        <div class="caudal-row"><label for="caudalAgent">Agen</label><input type="text" id="caudalAgent" class="caudal-input"></div>
+        <div class="caudal-row"><label for="caudalTarget">Target</label><input type="text" id="caudalTarget" class="caudal-input"></div>
+        <div class="caudal-row"><label for="caudalTest">Test dose</label><input type="text" id="caudalTest" class="caudal-input"></div>
     </div>
 </div>
 
@@ -510,7 +510,7 @@
         return colorStr.split('/').map(p => `<span class="color-text" style="color:${colorMap[p.trim()] || "#000"}">${p}</span>`).join('/');
     }
 
-    // Holliday-Segar 4-2-1 (ml/hr)
+    // Holliday-Segar 4-2-1 (cc/jam)
     function hollidaySegar(w) {
         if (w <= 10) return 4 * w;
         if (w <= 20) return 40 + 2 * (w - 10);
@@ -577,7 +577,7 @@
         const usePBW = isAdult && pbw > 0;
         const ventW = usePBW ? pbw : weight;
         const basis = usePBW ? " (PBW)" : (isAdult ? " (BB aktual, isi TB untuk PBW)" : "");
-        $('resVT').innerText = (usePBW || hasWeight) ? fmt(6 * ventW) + " - " + fmt(8 * ventW) + " ml" + basis : "-";
+        $('resVT').innerText = (usePBW || hasWeight) ? fmt(6 * ventW) + " - " + fmt(8 * ventW) + " cc" + basis : "-";
 
         // Minute volume (manual override supported)
         let mvMin = totalMonths <= 1 ? 250 : (totalYears <= 16 ? 100 : 80);
@@ -585,9 +585,9 @@
         const mvOn = $('mvOverrideToggle').checked;
         $('mvOverrideValue').style.display = mvOn ? "inline-block" : "none";
         if (mvOn) { const o = parseFloat($('mvOverrideValue').value); if (isFinite(o)) { mvMin = o; mvMax = o; } }
-        $('resMVFactor').innerText = mvMin === mvMax ? `${mvMin} ml/kg` : `${mvMin} - ${mvMax} ml/kg`;
+        $('resMVFactor').innerText = mvMin === mvMax ? `${mvMin} cc/kg` : `${mvMin} - ${mvMax} cc/kg`;
         $('resMV').innerText = (usePBW || hasWeight)
-            ? (mvMin === mvMax ? `${fmt(mvMin * ventW)} ml/min` : `${fmt(mvMin * ventW)} - ${fmt(mvMax * ventW)} ml/min`) + basis
+            ? (mvMin === mvMax ? `${fmt(mvMin * ventW)} cc/min` : `${fmt(mvMin * ventW)} - ${fmt(mvMax * ventW)} cc/min`) + basis
             : "-";
 
         const weightIds = ['resEBVFactor', 'resEBV', 'resMaint', 'resREL', 'resPP', 'resKC1', 'resKC2', 'resKC4',
@@ -604,15 +604,15 @@
         const ebvOn = $('ebvOverrideToggle').checked;
         $('ebvOverrideValue').style.display = ebvOn ? "inline-block" : "none";
         if (ebvOn) { const o = parseFloat($('ebvOverrideValue').value); if (isFinite(o)) ebvF = o; }
-        $('resEBVFactor').innerText = ebvF + " ml/kg";
+        $('resEBVFactor').innerText = ebvF + " cc/kg";
         const ebv = weight * ebvF;
-        $('resEBV').innerText = fmt(ebv) + " ml";
+        $('resEBV').innerText = fmt(ebv) + " cc";
 
         let ablHtml = "";
         if (isFinite(hctInit) && hctInit > 0) {
             [30, 27, 24, 21].forEach(t => {
                 const vol = hctInit > t ? (ebv * (hctInit - t)) / hctInit : 0;
-                ablHtml += `<div class="result-row"><span class="result-label">Hct ${t}%</span><span class="result-value">${fmt(vol)} ml</span></div>`;
+                ablHtml += `<div class="result-row"><span class="result-label">Hct ${t}%</span><span class="result-value">${fmt(vol)} cc</span></div>`;
             });
         }
         $('ablSection').innerHTML = ablHtml;
@@ -622,24 +622,24 @@
         const m2 = 2 * weight;
         const rel = relFactor * weight;
         const ppHS = mHS * ppHours, pp2 = m2 * ppHours;
-        $('resMaint').innerHTML = dual(fmt(mHS), fmt(m2), "ml/jam");
-        $('resREL').innerText = fmt(rel) + " ml/jam";
-        $('resPP').innerHTML = dual(fmt(ppHS), fmt(pp2), "ml");
-        $('resKC1').innerHTML = dual(fmt(mHS + rel + 0.5 * ppHS), fmt(m2 + rel + 0.5 * pp2), "ml");
-        $('resKC2').innerHTML = dual(fmt(mHS + rel + 0.25 * ppHS), fmt(m2 + rel + 0.25 * pp2), "ml");
-        $('resKC4').innerHTML = dual(fmt(mHS + rel), fmt(m2 + rel), "ml");
+        $('resMaint').innerHTML = dual(fmt(mHS), fmt(m2), "cc/jam");
+        $('resREL').innerText = fmt(rel) + " cc/jam";
+        $('resPP').innerHTML = dual(fmt(ppHS), fmt(pp2), "cc");
+        $('resKC1').innerHTML = dual(fmt(mHS + rel + 0.5 * ppHS), fmt(m2 + rel + 0.5 * pp2), "cc");
+        $('resKC2').innerHTML = dual(fmt(mHS + rel + 0.25 * ppHS), fmt(m2 + rel + 0.25 * pp2), "cc");
+        $('resKC4').innerHTML = dual(fmt(mHS + rel), fmt(m2 + rel), "cc");
 
-        // Medications (ranges kept, label "unit" as before)
+        // Medications: dose per kg, shown in each drug's own unit
         const meds = [
-            { n: "Midazolam", d: "0.05 mg", lo: 0.05, hi: 0.05 },
-            { n: "Fentanyl", d: "1-2 mcg", lo: 1, hi: 2 },
-            { n: "Propofol", d: "1-2 mg", lo: 1, hi: 2 },
-            { n: "Atracurium", d: "0.5 mg", lo: 0.5, hi: 0.5 },
-            { n: "Rocuronium", d: "0.6-1.2 mg", lo: 0.6, hi: 1.2 },
-            { n: "Ketamine", d: "1-2 mg", lo: 1, hi: 2 },
-            { n: "Paracetamol", d: "15 mg", lo: 15, hi: 15, max: 1000, maxLabel: "1 g" },
-            { n: "Dexamethason", d: "0.1-0.5 mg", lo: 0.1, hi: 0.5 },
-            { n: "Neostigmine", d: "0.04-0.07 mg", lo: 0.04, hi: 0.07, max: 5, maxLabel: "5 mg" }
+            { n: "Midazolam", d: "0.05 mg", lo: 0.05, hi: 0.05, u: "mg" },
+            { n: "Fentanyl", d: "1-2 mcg", lo: 1, hi: 2, u: "mcg" },
+            { n: "Propofol", d: "1-2 mg", lo: 1, hi: 2, u: "mg" },
+            { n: "Atracurium", d: "0.5 mg", lo: 0.5, hi: 0.5, u: "mg" },
+            { n: "Rocuronium", d: "0.6-1.2 mg", lo: 0.6, hi: 1.2, u: "mg" },
+            { n: "Ketamine", d: "1-2 mg", lo: 1, hi: 2, u: "mg" },
+            { n: "Paracetamol", d: "15 mg", lo: 15, hi: 15, max: 1000, maxLabel: "1 g", u: "mg" },
+            { n: "Dexamethason", d: "0.1-0.5 mg", lo: 0.1, hi: 0.5, u: "mg" },
+            { n: "Neostigmine", d: "0.04-0.07 mg", lo: 0.04, hi: 0.07, max: 5, maxLabel: "5 mg", u: "mg" }
         ];
         $('medsList').innerHTML = meds.map(m => {
             const cap = (v) => m.max ? Math.min(v, m.max) : v;
@@ -648,7 +648,7 @@
             const val = lo === hi ? f(lo) : `${f(lo)} - ${f(hi)}`;
             const capped = m.max && m.hi * weight > m.max;
             const label = `${m.n} (${m.d}/kg${m.max ? ', max ' + m.maxLabel : ''})`;
-            return `<div class="result-row"><span class="result-label">${label}</span><span class="result-value">${val} unit${capped ? ' <span class="cap-note">(capped at max)</span>' : ''}</span></div>`;
+            return `<div class="result-row"><span class="result-label">${label}</span><span class="result-value">${val} ${m.u}${capped ? ' <span class="cap-note">(capped at max)</span>' : ''}</span></div>`;
         }).join('');
 
         // Emergency with max caps
