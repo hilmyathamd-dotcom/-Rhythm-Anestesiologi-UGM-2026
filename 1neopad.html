@@ -106,6 +106,9 @@
         .result-value { font-weight: 700; color: var(--primary); text-align: right; line-height: 1.4; flex: 1.5; display: flex; flex-direction: column; align-items: flex-end; }
         .sub-header { font-weight: bold; color: var(--accent); margin-top: 10px; border-bottom: 2px solid var(--accent); display: inline-block; }
         .note { font-size: 0.75rem; color: #95a5a6; font-weight: normal; }
+        .caudal-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #eee; }
+        .caudal-row label { flex: 0 0 80px; margin: 0; color: #555; font-weight: 500; }
+        .caudal-input { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 16px; font-family: inherit; box-sizing: border-box; }
         .cap-note { font-size: 0.75em; color: #c0392b; font-weight: 600; }
 
         .calc-weight { color: var(--primary); }
@@ -307,11 +310,12 @@
         <div class="section-header">EMERGENCY</div>
         <div class="result-row"><span class="result-label">Epinephrine (10 mcg/kg, max 1 mg)</span><span id="resEpi" class="result-value">-</span></div>
         <div class="result-row"><span class="result-label">Ephedrine (0.1-0.3 mg/kg)</span><span id="resEphedrine" class="result-value">-</span></div>
-        <div class="result-row"><span class="result-label">Atropine (0.01-0.02 mg/kg, max 0.5 mg)</span><span id="resAtropine" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Atropin (0.01-0.02 mg/kg, max 0.5 mg)</span><span id="resAtropine" class="result-value">-</span></div>
 
         <div class="section-header">CAUDAL</div>
-        <div class="result-row"><span class="result-label">Armitage (0.5 ml/kg)</span><span id="resArmitageLow" class="result-value">-</span></div>
-        <div class="result-row"><span class="result-label">Armitage (1.0 ml/kg)</span><span id="resArmitageHigh" class="result-value">-</span></div>
+        <div class="caudal-row"><label for="caudalAgent">Agen</label><input type="text" id="caudalAgent" class="caudal-input" placeholder="mis. Bupivacaine 0.25%"></div>
+        <div class="caudal-row"><label for="caudalTarget">Target</label><input type="text" id="caudalTarget" class="caudal-input" placeholder="mis. Sacral / Lumbar, volume"></div>
+        <div class="caudal-row"><label for="caudalTest">Test dose</label><input type="text" id="caudalTest" class="caudal-input" placeholder="mis. 0.1 ml/kg + epi 1:200.000"></div>
     </div>
 </div>
 
@@ -587,7 +591,7 @@
             : "-";
 
         const weightIds = ['resEBVFactor', 'resEBV', 'resMaint', 'resREL', 'resPP', 'resKC1', 'resKC2', 'resKC4',
-                           'resEpi', 'resEphedrine', 'resAtropine', 'resArmitageLow', 'resArmitageHigh'];
+                           'resEpi', 'resEphedrine', 'resAtropine'];
         if (!hasWeight) {
             weightIds.forEach(id => $(id).innerText = "-");
             $('ablSection').innerHTML = "";
@@ -627,13 +631,24 @@
 
         // Medications (ranges kept, label "unit" as before)
         const meds = [
+            { n: "Midazolam", d: "0.05 mg", lo: 0.05, hi: 0.05 },
             { n: "Fentanyl", d: "1-2 mcg", lo: 1, hi: 2 },
             { n: "Propofol", d: "1-2 mg", lo: 1, hi: 2 },
-            { n: "Atracurium", d: "0.5 mg", lo: 0.5, hi: 0.5 }
+            { n: "Atracurium", d: "0.5 mg", lo: 0.5, hi: 0.5 },
+            { n: "Rocuronium", d: "0.6-1.2 mg", lo: 0.6, hi: 1.2 },
+            { n: "Ketamine", d: "1-2 mg", lo: 1, hi: 2 },
+            { n: "Paracetamol", d: "15 mg", lo: 15, hi: 15, max: 1000, maxLabel: "1 g" },
+            { n: "Dexamethason", d: "0.1-0.5 mg", lo: 0.1, hi: 0.5 },
+            { n: "Neostigmine", d: "0.04-0.07 mg", lo: 0.04, hi: 0.07, max: 5, maxLabel: "5 mg" }
         ];
         $('medsList').innerHTML = meds.map(m => {
-            const val = m.lo === m.hi ? fmt(m.lo * weight, 1) : `${fmt(m.lo * weight, 1)} - ${fmt(m.hi * weight, 1)}`;
-            return `<div class="result-row"><span class="result-label">${m.n} (${m.d}/kg)</span><span class="result-value">${val} unit</span></div>`;
+            const cap = (v) => m.max ? Math.min(v, m.max) : v;
+            const lo = cap(m.lo * weight), hi = cap(m.hi * weight);
+            const f = (v) => fmt(v, v < 1 ? 2 : 1);
+            const val = lo === hi ? f(lo) : `${f(lo)} - ${f(hi)}`;
+            const capped = m.max && m.hi * weight > m.max;
+            const label = `${m.n} (${m.d}/kg${m.max ? ', max ' + m.maxLabel : ''})`;
+            return `<div class="result-row"><span class="result-label">${label}</span><span class="result-value">${val} unit${capped ? ' <span class="cap-note">(capped at max)</span>' : ''}</span></div>`;
         }).join('');
 
         // Emergency with max caps
@@ -644,8 +659,6 @@
         $('resAtropine').innerHTML = (atLo === atHi ? fmt(atLo, 2) : fmt(atLo, 2) + " - " + fmt(atHi, 2)) + " mg"
             + (0.02 * weight > 0.5 ? ' <span class="cap-note">(capped at max)</span>' : '');
 
-        $('resArmitageLow').innerText = fmt(0.5 * weight, 1) + " ml";
-        $('resArmitageHigh').innerText = fmt(1.0 * weight, 1) + " ml";
     }
 
     window.addEventListener('load', () => {
