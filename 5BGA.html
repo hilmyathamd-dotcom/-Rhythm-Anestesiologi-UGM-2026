@@ -599,15 +599,19 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
         document.getElementById('compAnalysis').innerHTML = '<div style="color:#999; font-style:italic;">Calculations will appear here.</div>';
 
         if (pH === null || pCO2 === null) {
+            document.getElementById('in_hco3').placeholder = '';
             document.getElementById('interpretationBox').innerText = "Insufficient Data (pH & PaCO2 needed)";
             return;
         }
 
-        // 1. Calculate Actual HCO3 if missing
+        // 1. HCO3 field holds measured data only. If empty, use a calculated value
+        //    internally (shown as placeholder) without writing it into the field.
+        const hco3El = document.getElementById('in_hco3');
+        hco3El.placeholder = '';
         if (HCO3 === null) {
             HCO3 = 0.03 * pCO2 * Math.pow(10, (pH - 6.1));
-            document.getElementById('in_hco3').value = HCO3.toFixed(1);
-            setAlt('alt_hco3', HCO3.toFixed(1) + " mEq/L");
+            hco3El.placeholder = 'calc ' + HCO3.toFixed(1);
+            setAlt('alt_hco3', HCO3.toFixed(1) + " (calc)");
         }
 
         // --- pH Status ---

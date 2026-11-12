@@ -204,7 +204,7 @@
           </div>
           <div class="input-wrapper">
               <label>Umur (Tahun)</label>
-              <input type="number" id="vpAge" inputmode="numeric" placeholder="Tahun" oninput="userEdit()">
+              <input type="number" id="vpAge" inputmode="numeric" placeholder="Tahun" oninput="userEdit(true)">
           </div>
           <div class="input-wrapper">
               <label>Berat (kg)</label>
@@ -366,7 +366,7 @@
               rows += `
                   <tr>
                       <td>${drug.doseDigits ? dose.toFixed(drug.doseDigits) : dose}</td>
-                      <td class="calc-val">${rate > 0 ? rate.toFixed(drug.perHour || drug.fixed ? 2 : 1) : "-"}</td>
+                      <td class="calc-val"${rate > 0 && rate < 0.5 ? ' style="color:#ff0000;"' : ''}>${rate > 0 ? rate.toFixed(rate < 1 ? 3 : (drug.perHour || drug.fixed ? 2 : 1)) : "-"}</td>
                   </tr>
               `;
           });
@@ -412,10 +412,12 @@
       });
   }
 
-  function userEdit() {
+  function userEdit(ageChanged) {
       if (window.PatientStore) {
           const n = (id) => { const v = document.getElementById(id).value; return v === "" ? NaN : parseFloat(v); };
-          PatientStore.set({ weight: n('vpWeight'), height: n('vpHeight'), ageYear: n('vpAge') });
+          const fields = { weight: n('vpWeight'), height: n('vpHeight'), ageYear: n('vpAge') };
+          if (ageChanged) fields.ageMonth = 0;   // new age entered here: don't keep the previous patient's months
+          PatientStore.set(fields);
       }
       calculateVaso();
   }
@@ -435,3 +437,4 @@
 
 </body>
 </html>
+

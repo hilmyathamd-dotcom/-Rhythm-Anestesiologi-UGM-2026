@@ -308,9 +308,10 @@
         <div id="medsList"></div>
 
         <div class="section-header">EMERGENCY</div>
-        <div class="result-row"><span class="result-label">Epinephrine (10 mcg/kg, max 1 mg)</span><span id="resEpi" class="result-value">-</span></div>
-        <div class="result-row"><span class="result-label">Ephedrine (0.1-0.3 mg/kg)</span><span id="resEphedrine" class="result-value">-</span></div>
-        <div class="result-row"><span class="result-label">Atropin (0.01-0.02 mg/kg, max 0.5 mg)</span><span id="resAtropine" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Epinephrine – Cardiac arrest IV/IO<br><span class="note">10 mcg/kg, max 1 mg; dewasa 1 mg</span></span><span id="resEpi" class="result-value">-</span></div>
+        <div class="result-row" style="opacity:0.7;"><span class="result-label">Epinephrine – Anafilaksis IM<br><span class="note">10 mcg/kg, max 0.5 mg</span></span><span id="resEpiIM" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Ephedrine (0.1-0.3 mg/kg, max 10 mg)</span><span id="resEphedrine" class="result-value">-</span></div>
+        <div class="result-row"><span class="result-label">Atropin (0.01-0.02 mg/kg, max 1 mg)</span><span id="resAtropine" class="result-value">-</span></div>
 
         <div class="section-header">CAUDAL</div>
         <div class="caudal-row"><label for="caudalAgent">Agen</label><input type="text" id="caudalAgent" class="caudal-input"></div>
@@ -591,7 +592,7 @@
             : "-";
 
         const weightIds = ['resEBVFactor', 'resEBV', 'resMaint', 'resREL', 'resPP', 'resKC1', 'resKC2', 'resKC4',
-                           'resEpi', 'resEphedrine', 'resAtropine'];
+                           'resEpi', 'resEpiIM', 'resEphedrine', 'resAtropine'];
         if (!hasWeight) {
             weightIds.forEach(id => $(id).innerText = "-");
             $('ablSection').innerHTML = "";
@@ -638,7 +639,7 @@
             { n: "Rocuronium", d: "0.6-1.2 mg", lo: 0.6, hi: 1.2, u: "mg" },
             { n: "Ketamine", d: "1-2 mg", lo: 1, hi: 2, u: "mg" },
             { n: "Paracetamol", d: "15 mg", lo: 15, hi: 15, max: 1000, maxLabel: "1 g", u: "mg" },
-            { n: "Dexamethason", d: "0.1-0.5 mg", lo: 0.1, hi: 0.5, u: "mg" },
+            { n: "Dexamethason", d: "0.1-0.5 mg", lo: 0.1, hi: 0.5, max: 10, maxLabel: "10 mg", u: "mg" },
             { n: "Neostigmine", d: "0.04-0.07 mg", lo: 0.04, hi: 0.07, max: 5, maxLabel: "5 mg", u: "mg" }
         ];
         $('medsList').innerHTML = meds.map(m => {
@@ -652,12 +653,23 @@
         }).join('');
 
         // Emergency with max caps
-        const epi = Math.min(10 * weight, 1000);
-        $('resEpi').innerHTML = fmt(epi) + " mcg" + (10 * weight > 1000 ? ' <span class="cap-note">(max dose)</span>' : '');
-        $('resEphedrine').innerText = fmt(0.1 * weight, 1) + " - " + fmt(0.3 * weight, 1) + " mg";
-        const atLo = Math.min(0.01 * weight, 0.5), atHi = Math.min(0.02 * weight, 0.5);
+        // Cardiac arrest: 10 mcg/kg max 1 mg; adults flat 1 mg
+        if (isAdult) {
+            $('resEpi').innerHTML = '1000 mcg (1 mg) <span class="cap-note">(dosis dewasa)</span>';
+        } else {
+            const epi = Math.min(10 * weight, 1000);
+            $('resEpi').innerHTML = fmt(epi) + " mcg" + (10 * weight > 1000 ? ' <span class="cap-note">(max dose)</span>' : '');
+        }
+        // Anaphylaxis IM: 10 mcg/kg max 0.5 mg
+        const epiIM = Math.min(10 * weight, 500);
+        $('resEpiIM').innerHTML = fmt(epiIM) + " mcg IM" + (10 * weight > 500 ? ' <span class="cap-note">(max dose)</span>' : '');
+
+        const ephLo = Math.min(0.1 * weight, 10), ephHi = Math.min(0.3 * weight, 10);
+        $('resEphedrine').innerHTML = (ephLo === ephHi ? fmt(ephLo, 1) : fmt(ephLo, 1) + " - " + fmt(ephHi, 1)) + " mg"
+            + (0.3 * weight > 10 ? ' <span class="cap-note">(capped at max)</span>' : '');
+        const atLo = Math.min(0.01 * weight, 1), atHi = Math.min(0.02 * weight, 1);
         $('resAtropine').innerHTML = (atLo === atHi ? fmt(atLo, 2) : fmt(atLo, 2) + " - " + fmt(atHi, 2)) + " mg"
-            + (0.02 * weight > 0.5 ? ' <span class="cap-note">(capped at max)</span>' : '');
+            + (0.02 * weight > 1 ? ' <span class="cap-note">(capped at max)</span>' : '');
 
     }
 
