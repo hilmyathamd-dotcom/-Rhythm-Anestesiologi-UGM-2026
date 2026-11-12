@@ -414,22 +414,20 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
             if (found[name] === undefined || (isT[name] && !tCorr)) { found[name] = v; isT[name] = tCorr; }
         };
 
-        text.split(/\r?\n/).forEach(rawLine => {
-            const line = rawLine.replace(/[*#]/g, '').trim();
-            if (!line) return;
-            let key, valStr;
-            if ((line.match(/,/g) || []).length >= 2 || /^[^,]+,\s*-?\d/.test(line) && !/\d,\d/.test(line)) {
-                const parts = line.split(',');
-                key = parts[0]; valStr = (parts[1] || '').trim();
-            } else {
-                const m = line.match(/^([^\d\-\s][^:=\t]*?)\s*(?:[:=\t]|\s)\s*(-?\d+(?:[.,]\d+)?)/);
-                if (!m) return;
-                key = m[1]; valStr = m[2];
-            }
-            let val = parseFloat(String(valStr).replace(',', '.'));
+        // Unicode sub/superscripts from WhatsApp/EMR (FiO₂, HCO₃⁻, Na⁺) -> plain text; drop emoji
+        const SUB = '₀₁₂₃₄₅₆₇₈₉', SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+        const norm = (t) => t
+            .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, c => SUB.indexOf(c))
+            .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, c => SUP.indexOf(c))
+            .replace(/⁻/g, '-').replace(/⁺/g, '+')
+            .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}‍️⬆⬇]/gu, ' ');
+
+        // Map one parameter name + value
+        const handle = (key, valStr, rawLine) => {
+            const val = parseFloat(String(valStr).replace(',', '.'));
             if (isNaN(val)) return;
 
-            const k = key.toLowerCase().replace(/\s+/g, '');
+            const k = key.toLowerCase().replace(/[\s.]+$/g, '').replace(/\s+/g, '');
             if (k === 'parameter') return;
             const tCorr = /\(t\)/.test(k);
             const base = k.replace(/\((t|p|a|aa)\)/g, '').replace(/,c$/, '');
@@ -446,7 +444,7 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
             else if (/^(c?na\+?|sodium|natrium)$/.test(base)) put('na', val, false);
             else if (/^(c?cl-?|chloride|klorida)$/.test(base)) put('cl', val, false);
             else if (base.includes('albumin') || base === 'alb') put('alb', /g\/l/.test(unit) && val > 10 ? val / 10 : val, false);
-            else if (base.includes('lact') || base === 'clac' || base === 'lac') put('lac', /mg\/dl/.test(unit) ? val / 9 : val, false);
+            else if (base.includes('lact') || base === 'clac' || base === 'lac' || base === 'laktat') put('lac', /mg\/dl/.test(unit) ? val / 9 : val, false);
             else if (base.includes('fio2')) put('fio2', val, false);
             else if (/^(be|be\(b\)|abe|cbase\(b\)|baseexcess(\(b\))?)$/.test(base)) put('be', val, false);
             else if (/^(beecf|be\(ecf\)|sbe|cbase\(ecf\)|baseexcess\(ecf\))$/.test(base)) { if (found.be === undefined) found.be_ecf = val; }
@@ -455,6 +453,33 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
             else if (base === 'urea' || base === 'ureum') put('bun', /mmol/.test(unit) ? val * 2.8 : val / 2.14, false);
             else if (base.includes('osmol') && (base.includes('meas') || base.includes('ukur'))) put('osmo', val, false);
             else if (base.startsWith('temp') || base === 't' || base === 'suhu') put('temp', val, false);
+        };
+
+        text.split(/\r?\n/).forEach(rawLine0 => {
+            const rawLine = norm(rawLine0);
+            const line = rawLine.replace(/[*#]/g, '').trim();
+            if (!line) return;
+
+            // Grouped values: "Na/K/Cl : 142 / 4.1 / 104", "BUN/Cr : 11 / 1.01"
+            const g = line.match(/^([A-Za-z][^:=]*\/[^:=]*?)\s*[:=]\s*(-?\d[\d.,]*(?:\s*\/\s*-?\d[\d.,]*)+)/);
+            if (g) {
+                const ks = g[1].split('/'), vs = g[2].split('/');
+                if (ks.length === vs.length) {
+                    ks.forEach((k, i) => handle(k.trim(), vs[i].trim(), rawLine));
+                    return;
+                }
+            }
+
+            let key, valStr;
+            if ((line.match(/,/g) || []).length >= 2 || /^[^,]+,\s*-?\d/.test(line) && !/\d,\d/.test(line)) {
+                const parts = line.split(',');
+                key = parts[0]; valStr = (parts[1] || '').trim();
+            } else {
+                const m = line.match(/^([^\d\-\s][^:=\t]*?)\s*(?:[:=\t]|\s)\s*(-?\d+(?:[.,]\d+)?)/);
+                if (!m) return;
+                key = m[1]; valStr = m[2];
+            }
+            handle(key, valStr, rawLine);
         });
         if (found.be === undefined && found.be_ecf !== undefined) found.be = found.be_ecf;
         return found;
@@ -465,8 +490,14 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
         if (!text) return;
         const found = parseBgaText(text);
 
+        // Clear previous patient's values so nothing carries over into a new paste
+        ['in_pH','in_pco2','in_hco3','in_na','in_cl','in_lac','in_po2','in_be','in_gluc','in_bun','in_osmo','in_temp']
+            .forEach(id => { document.getElementById(id).value = ''; });
+        document.getElementById('in_alb').value = '4.0';
+        document.getElementById('in_fio2').value = '0.21';
+
         let finalHCO3 = found.hco3_act !== undefined ? found.hco3_act : found.hco3_gen;
-        const setIn = (id, v) => { if (v !== undefined) document.getElementById(id).value = +(+v).toFixed(2); };
+        const setIn = (id, v) => { if (v !== undefined) document.getElementById(id).value = +(+v).toFixed(3); };
         setIn('in_pH', found.ph);
         setIn('in_pco2', found.pco2);
         setIn('in_hco3', finalHCO3);
