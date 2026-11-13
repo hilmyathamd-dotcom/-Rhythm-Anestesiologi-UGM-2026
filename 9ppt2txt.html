@@ -10,10 +10,10 @@ button:disabled{background:#999}
 progress{width:100%}
 </style></head><body>
 
-<p>Runs fully on this device. Nothing is uploaded. Works with .pptx / .ppsx / .pptm (not old .ppt).</p>
+<p>Runs fully on this device. Nothing is uploaded. Works with .pptx / .ppsx / .pptm (not old .ppt) and .pdf (text-based; scanned PDFs have no text to extract).</p>
 <label class="b">1. Choose files (select many)
-<input id="f" type="file" multiple accept=".pptx,.ppsx,.pptm,.potx" hidden></label>
-<label><input type="checkbox" id="notes"> include speaker notes</label>
+<input id="f" type="file" multiple accept=".pptx,.ppsx,.pptm,.potx,.pdf,application/pdf" hidden></label>
+<label><input type="checkbox" id="notes"> include speaker notes (PPTX)</label>
 <progress id="p" value="0" max="1"></progress>
 <button id="go" disabled>2. Convert</button>
 <button id="dlzip" disabled>Download ZIP (one .txt per file)</button>
@@ -84,6 +84,34 @@ async function convert(buf,notes){
   return out.join("\n").trim()+"\n";
 }
 
+// ---- PDF -> text (PDF.js, bundled locally in ./pdfjs, loaded only when a PDF is converted) ----
+let pdfjsP=null;
+function loadPdfjs(){
+  if(!pdfjsP)pdfjsP=import('./pdfjs/pdf.min.mjs').then(m=>{m.GlobalWorkerOptions.workerSrc='./pdfjs/pdf.worker.min.mjs';return m})
+    .catch(e=>{pdfjsP=null;throw new Error("PDF reader could not load ("+e.message+")")});
+  return pdfjsP;
+}
+async function convertPdf(buf){
+  const pdfjs=await loadPdfjs();
+  const task=pdfjs.getDocument({data:new Uint8Array(buf),isEvalSupported:false});
+  let doc;
+  try{ doc=await task.promise; }
+  catch(e){ task.destroy(); throw new Error(e.name==="PasswordException"?"password-protected PDF":e.message); }
+  const out=[]; let chars=0;
+  for(let i=1;i<=doc.numPages;i++){
+    const page=await doc.getPage(i), tc=await page.getTextContent();
+    let s="";
+    for(const it of tc.items){ if(typeof it.str!=="string")continue; s+=it.str; if(it.hasEOL)s+="\n"; }
+    s=s.replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim();
+    chars+=s.length; out.push("=== Page "+i+" ===");
+    if(s)out.push(s);
+    out.push(""); page.cleanup();
+  }
+  await task.destroy();
+  if(!chars)throw new Error("no text found (scanned/image PDF, needs OCR)");
+  return out.join("\n").trim()+"\n";
+}
+
 // ---- minimal ZIP writer (stored) ----
 const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
 const crc=u=>{let c=~0;for(let i=0;i<u.length;i++)c=crcT[(c^u[i])&255]^(c>>>8);return ~c>>>0};
@@ -109,7 +137,8 @@ $('go').onclick=async()=>{
   const seen={};
   for(const f of files){
     try{
-      const text=await convert(await f.arrayBuffer(),$('notes').checked);
+      const isPdf=/\.pdf$/i.test(f.name)||f.type==="application/pdf";
+      const text=isPdf?await convertPdf(await f.arrayBuffer()):await convert(await f.arrayBuffer(),$('notes').checked);
       let base=f.name.replace(/\.[^.]+$/,""); seen[base]=(seen[base]||0)+1; if(seen[base]>1)base+="_"+seen[base];
       results.push({name:base+".txt",src:f.name,text}); log("ok  "+f.name);
     }catch(e){log("FAIL "+f.name+": "+e.message)}
