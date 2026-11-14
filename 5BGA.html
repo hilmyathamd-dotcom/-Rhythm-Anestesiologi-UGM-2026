@@ -245,13 +245,7 @@
     </div>
 
     <div class="section-header">1. Data Import</div>
-    <textarea id="rawInput" placeholder="Paste hasil BGA langsung dari EMR / printout analyzer. Format bebas, satu parameter per baris, mis.:
-pH 7.32
-pCO2: 48 mmHg
-cHCO3- 21.5
-Na+ 138
-Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim ke mana pun."></textarea>
-    <button class="parse-btn" onclick="processInput()">Analyze Data</button>
+    <div id="quickFill"></div>
 
     <div class="section-header">2. Clinical Parameters</div>
     <div class="input-grid">
@@ -393,6 +387,7 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
     </div>
 </div>
 
+<script src="shared.js"></script>
 <script>
     // --- State Management ---
     let isChronic = false;
@@ -405,90 +400,15 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
         runCalc();
     }
 
-    // --- Parser ---
-    // Accepts raw EMR / analyzer text ("pH 7.32", "pCO2: 48 mmHg", tab-separated) or CSV.
-    function parseBgaText(text) {
-        const found = {};
-        const isT = {};   // remembers values that came from temperature-corrected (T) rows
-        const put = (name, v, tCorr) => {
-            if (found[name] === undefined || (isT[name] && !tCorr)) { found[name] = v; isT[name] = tCorr; }
-        };
-
-        // Unicode sub/superscripts from WhatsApp/EMR (FiO₂, HCO₃⁻, Na⁺) -> plain text; drop emoji
-        const SUB = '₀₁₂₃₄₅₆₇₈₉', SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-        const norm = (t) => t
-            .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, c => SUB.indexOf(c))
-            .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, c => SUP.indexOf(c))
-            .replace(/⁻/g, '-').replace(/⁺/g, '+')
-            .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}‍️⬆⬇]/gu, ' ');
-
-        // Map one parameter name + value
-        const handle = (key, valStr, rawLine) => {
-            const val = parseFloat(String(valStr).replace(',', '.'));
-            if (isNaN(val)) return;
-
-            const k = key.toLowerCase().replace(/[\s.]+$/g, '').replace(/\s+/g, '');
-            if (k === 'parameter') return;
-            const tCorr = /\(t\)/.test(k);
-            const base = k.replace(/\((t|p|a|aa)\)/g, '').replace(/,c$/, '');
-            const unit = rawLine.toLowerCase();
-
-            if (base === 'ph') put('ph', val, tCorr);
-            else if (base === 'pco2' || base === 'paco2') put('pco2', /kpa/.test(unit) ? val * 7.5 : val, tCorr);
-            else if (base === 'po2' || base === 'pao2') put('po2', /kpa/.test(unit) ? val * 7.5 : val, tCorr);
-            else if (base.includes('hco3') || base.includes('bicarb')) {
-                if (/\(st\)|std|standard|sbc/.test(base)) return;            // standard bicarbonate ignored
-                if (/act|^chco3/.test(base) || base === 'actualbicarbonate') put('hco3_act', val, false);
-                else put('hco3_gen', val, false);
-            }
-            else if (/^(c?na\+?|sodium|natrium)$/.test(base)) put('na', val, false);
-            else if (/^(c?cl-?|chloride|klorida)$/.test(base)) put('cl', val, false);
-            else if (base.includes('albumin') || base === 'alb') put('alb', /g\/l/.test(unit) && val > 10 ? val / 10 : val, false);
-            else if (base.includes('lact') || base === 'clac' || base === 'lac' || base === 'laktat') put('lac', /mg\/dl/.test(unit) ? val / 9 : val, false);
-            else if (base.includes('fio2')) put('fio2', val, false);
-            else if (/^(be|be\(b\)|abe|cbase\(b\)|baseexcess(\(b\))?)$/.test(base)) put('be', val, false);
-            else if (/^(beecf|be\(ecf\)|sbe|cbase\(ecf\)|baseexcess\(ecf\))$/.test(base)) { if (found.be === undefined) found.be_ecf = val; }
-            else if (base.includes('glu') || base === 'gds' || base === 'guladarah') put('gluc', /mmol/.test(unit) ? val * 18 : val, false);
-            else if (base === 'bun') put('bun', /mmol/.test(unit) ? val * 2.8 : val, false);
-            else if (base === 'urea' || base === 'ureum') put('bun', /mmol/.test(unit) ? val * 2.8 : val / 2.14, false);
-            else if (base.includes('osmol') && (base.includes('meas') || base.includes('ukur'))) put('osmo', val, false);
-            else if (base.startsWith('temp') || base === 't' || base === 'suhu') put('temp', val, false);
-        };
-
-        text.split(/\r?\n/).forEach(rawLine0 => {
-            const rawLine = norm(rawLine0);
-            const line = rawLine.replace(/[*#]/g, '').trim();
-            if (!line) return;
-
-            // Grouped values: "Na/K/Cl : 142 / 4.1 / 104", "BUN/Cr : 11 / 1.01"
-            const g = line.match(/^([A-Za-z][^:=]*\/[^:=]*?)\s*[:=]\s*(-?\d[\d.,]*(?:\s*\/\s*-?\d[\d.,]*)+)/);
-            if (g) {
-                const ks = g[1].split('/'), vs = g[2].split('/');
-                if (ks.length === vs.length) {
-                    ks.forEach((k, i) => handle(k.trim(), vs[i].trim(), rawLine));
-                    return;
-                }
-            }
-
-            let key, valStr;
-            if ((line.match(/,/g) || []).length >= 2 || /^[^,]+,\s*-?\d/.test(line) && !/\d,\d/.test(line)) {
-                const parts = line.split(',');
-                key = parts[0]; valStr = (parts[1] || '').trim();
-            } else {
-                const m = line.match(/^([^\d\-\s][^:=\t]*?)\s*(?:[:=\t]|\s)\s*(-?\d+(?:[.,]\d+)?)/);
-                if (!m) return;
-                key = m[1]; valStr = m[2];
-            }
-            handle(key, valStr, rawLine);
-        });
-        if (found.be === undefined && found.be_ecf !== undefined) found.be = found.be_ecf;
-        return found;
-    }
-
-    function processInput() {
-        const text = document.getElementById('rawInput').value;
-        if (!text) return;
-        const found = parseBgaText(text);
+    // --- Shared paste box ---
+    // Parser + paste box live in shared.js (ClinicalParser / QuickFill), shared with the other clinical tabs.
+    // Lab values are applied once per new paste, so manual edits here are not overwritten by later
+    // patient edits in other tabs. A paste without lab values leaves this tab as it is.
+    let lastPasteId = null;
+    function applyPatient(p) {
+        if (!p || !p.labs || !Object.keys(p.labs).length || p.pasteId === lastPasteId) return;
+        lastPasteId = p.pasteId;
+        const L = p.labs;
 
         // Clear previous patient's values so nothing carries over into a new paste
         ['in_pH','in_pco2','in_hco3','in_na','in_cl','in_lac','in_po2','in_be','in_gluc','in_bun','in_osmo','in_temp']
@@ -496,23 +416,9 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
         document.getElementById('in_alb').value = '4.0';
         document.getElementById('in_fio2').value = '0.21';
 
-        let finalHCO3 = found.hco3_act !== undefined ? found.hco3_act : found.hco3_gen;
-        const setIn = (id, v) => { if (v !== undefined) document.getElementById(id).value = +(+v).toFixed(3); };
-        setIn('in_pH', found.ph);
-        setIn('in_pco2', found.pco2);
-        setIn('in_hco3', finalHCO3);
-        setIn('in_na', found.na);
-        setIn('in_cl', found.cl);
-        setIn('in_alb', found.alb);
-        setIn('in_lac', found.lac);
-        setIn('in_po2', found.po2);
-        setIn('in_be', found.be);
-        setIn('in_gluc', found.gluc);
-        setIn('in_bun', found.bun);
-        setIn('in_osmo', found.osmo);
-        setIn('in_temp', found.temp);
-        if (found.fio2 !== undefined) setIn('in_fio2', found.fio2 > 1 ? found.fio2 / 100 : found.fio2);
-
+        const map = { in_pH: 'ph', in_pco2: 'pco2', in_hco3: 'hco3', in_na: 'na', in_cl: 'cl', in_alb: 'alb', in_lac: 'lac',
+                      in_po2: 'po2', in_be: 'be', in_gluc: 'gluc', in_bun: 'bun', in_osmo: 'osmo', in_temp: 'temp', in_fio2: 'fio2' };
+        Object.keys(map).forEach(id => QuickFill.setField(id, L[map[id]]));
         runCalc();
     }
 
@@ -829,6 +735,11 @@ Atau CSV (Parameter,Value). Data diproses di perangkat ini saja, tidak dikirim k
         let uniqueDx = [...new Set(primaryDx)];
         document.getElementById('interpretationBox').innerText = uniqueDx.join(" + ");
     }
+
+    // --- Init ---
+    QuickFill.mount(document.getElementById('quickFill'), { onPaste: applyPatient });
+    applyPatient(PatientStore.get());
+    PatientStore.onChange(applyPatient);
 </script>
 
 </body>

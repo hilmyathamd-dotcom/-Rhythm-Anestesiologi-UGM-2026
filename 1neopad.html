@@ -38,32 +38,6 @@
             margin-bottom: 15px;
         }
 
-        /* Quick-fill parser */
-        .quick-box {
-            background: #eaf4fc;
-            border: 1px solid #b6d9f2;
-            border-radius: 6px;
-            padding: 12px;
-        }
-        .quick-box label { display:block; font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: var(--primary); }
-        .quick-box textarea {
-            width: 100%;
-            box-sizing: border-box;
-            min-height: 48px;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 16px;
-            font-family: inherit;
-            resize: vertical;
-        }
-        .quick-row { display:flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-        .chips { display:flex; flex-wrap: wrap; gap: 4px; }
-        .chip { background: #fff; border: 1px solid #a3c9e8; color: var(--primary); border-radius: 12px; padding: 2px 8px; font-size: 0.8rem; }
-        .chip.none { border-color: #ddd; color: #999; }
-        .chip.warn { border-color: #f0b27a; background: #fdf2e9; color: #a04000; }
-        .clear-btn { background: none; border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; font-size: 0.8rem; color: #555; cursor: pointer; }
-
         .input-group {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -109,6 +83,7 @@
         .caudal-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #eee; }
         .caudal-row label { flex: 0 0 80px; margin: 0; color: #555; font-weight: 500; }
         .caudal-input { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 16px; font-family: inherit; box-sizing: border-box; }
+        .pbw-dose { font-size: 0.75em; opacity: 0.6; font-weight: normal; }
         .cap-note { font-size: 0.75em; color: #c0392b; font-weight: 600; }
 
         .calc-weight { color: var(--primary); }
@@ -165,14 +140,7 @@
     <h1>Neopad Anestesi UGM</h1>
 
     <div id="calculatorWrapper">
-        <div class="quick-box">
-            <label for="quickInput">Isi cepat (ketik / paste data pasien)</label>
-            <textarea id="quickInput" rows="2" placeholder="Contoh: An. L, 2 th 3 bln, BB 12,5 kg, TB 88 cm, Hct 34, puasa 6 jam" oninput="onQuickInput()"></textarea>
-            <div class="quick-row">
-                <div id="quickChips" class="chips"><span class="chip none">Belum ada data terbaca</span></div>
-                <button class="clear-btn" type="button" onclick="clearQuick()">Hapus</button>
-            </div>
-        </div>
+        <div id="quickFill"></div>
 
         <div class="input-group">
             <div class="input-wrapper">
@@ -200,7 +168,7 @@
             </div>
             <div class="input-wrapper">
                 <label for="ppHours">PP (Jam)</label>
-                <input type="number" id="ppHours" inputmode="decimal" min="0" max="48" step="0.5" value="8" oninput="calculate()">
+                <input type="number" id="ppHours" inputmode="decimal" min="0" max="48" step="0.5" value="8" oninput="userEdit()">
             </div>
             <div class="input-wrapper">
                 <label for="relFactor">REL</label>
@@ -213,7 +181,7 @@
             </div>
             <div class="input-wrapper">
                 <label for="hctInit">Hct Awal (%)</label>
-                <input type="number" id="hctInit" inputmode="decimal" min="5" max="80" step="0.1" value="33" oninput="calculate()">
+                <input type="number" id="hctInit" inputmode="decimal" min="5" max="80" step="0.1" value="33" oninput="userEdit()">
             </div>
         </div>
 
@@ -370,118 +338,23 @@
     const $ = (id) => document.getElementById(id);
     const num = (id) => { const v = $(id).value; return v === "" ? NaN : parseFloat(v); };
 
-    // ---------- QUICK-FILL PARSER ----------
-    // Reads weight (kg / g), height (cm), age (tahun/bulan/minggu/hari), gender, Hct, puasa (jam).
-    function parsePatientText(text) {
-        const out = {};
-
-        // Several patients pasted at once (WhatsApp handover)? Use only the first one.
-        // A patient header looks like "Nama/P/49th/..." or "Nama/L/4 th 9 bln/...".
-        const lines = text.split(/\r?\n/);
-        const headerIdx = lines.map((l, i) => /\/\s*[LP]\s*\//i.test(l) ? i : -1).filter(i => i >= 0);
-        if (headerIdx.length >= 2) {
-            out.multi = headerIdx.length;
-            text = lines.slice(0, headerIdx[1]).join('\n');
-        }
-
-        // Clean WhatsApp formatting: *bold*, _italic_, emoji arrows, decimal commas
-        const clean = text
-            .replace(/[*_~]/g, ' ')
-            .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}‍️]/gu, ' ')
-            .replace(/(\d),(\d)/g, '$1.$2');
-        const s = ' ' + clean.toLowerCase() + ' ';
-        const N = '(\\d+(?:\\.\\d+)?)';
-        let m;
-
-        // Weight: "12.5 kg", "BB 12.5", "BB: 12,5", "2800 gr"
-        if ((m = s.match(new RegExp('\\b(?:bb|berat(?:\\s*badan)?|bw|wt)\\s*[:=]?\\s*' + N + '\\s*(?:kg)?(?![\\d.]|\\s*(?:g|gr|gram)\\b)')))) out.weight = parseFloat(m[1]);
-        else if ((m = s.match(new RegExp(N + '\\s*(?:kg|kgbb|kilo)\\b')))) out.weight = parseFloat(m[1]);
-        else if ((m = s.match(new RegExp(N + '\\s*(?:g|gr|gram)\\b(?!\\s*\\/)')))) out.weight = parseFloat(m[1]) / 1000;
-
-        // Height: "TB 88", "PB 50", "88 cm" (labelled value preferred over any stray "cm")
-        if ((m = s.match(new RegExp('\\b(?:tb|pb|tinggi(?:\\s*badan)?|panjang(?:\\s*badan)?)\\s*[:=]?\\s*' + N)))) out.height = parseFloat(m[1]);
-        else if ((m = s.match(new RegExp(N + '\\s*cm\\b')))) out.height = parseFloat(m[1]);
-
-        // Age: header "/49th/" or "/4 th 9 bln/" first, then anywhere
-        const ageSrc = (s.match(/\/\s*[lp]\s*\/([^\/\n]{1,25})\//) || [])[1] || s;
-        let years = null, months = null;
-        if ((m = ageSrc.match(new RegExp(N + '\\s*(?:tahun|thn|th|yo|y\\.?o\\.?|yrs?|years?|y)\\b')))) years = parseFloat(m[1]);
-        if ((m = ageSrc.match(new RegExp(N + '\\s*(?:bulan|bln|bl|mo|mos|months?|mth)\\b')))) months = parseFloat(m[1]);
-        if (years === null && months === null && (m = ageSrc.match(new RegExp(N + '\\s*(?:minggu|mgg|wk|wks|weeks?)\\b')))) months = parseFloat(m[1]) * 7 / 30.44;
-        if (years === null && months === null && (m = ageSrc.match(new RegExp(N + '\\s*(?:hari|days?)\\b')))) months = parseFloat(m[1]) / 30.44;
-        if (years === null && months === null && (m = s.match(new RegExp('\\b(?:usia|umur|age)\\s*[:=]?\\s*' + N)))) years = parseFloat(m[1]);
-        if (years !== null || months !== null) {
-            let total = (years || 0) * 12 + (months || 0);
-            total = Math.round(total * 10) / 10;
-            out.ageYear = Math.floor(total / 12);
-            out.ageMonth = Math.floor(total - out.ageYear * 12);
-        }
-
-        // Gender: header "/P/" or "/L/" first, then words
-        const sg = s.replace(/\bby\.?\s*ny\.?\s/g, ' by ');   // "By. Ny X" = baby of Mrs X, not female
-        if ((m = s.match(/\/\s*([lp])\s*\//))) out.gender = m[1] === 'l' ? 'male' : 'female';
-        else if (/\b(?:perempuan|wanita|female|girl)\b|\b(?:ny|nn|nona)\.?\s/.test(sg)) out.gender = 'female';
-        else if (/\b(?:laki(?:-laki)?|pria|male|boy)\b|\btn\.?\s/.test(sg)) out.gender = 'male';
-        else if ((m = sg.match(/(?:^|[\s(,;])([lp])(?=[\s),;.]|$)/))) out.gender = m[1] === 'l' ? 'male' : 'female';
-
-        // Hct: "Hb/Ht: 12.0 / 36.3" takes the second number; else "Hct 34" / "Ht 34"
-        if ((m = s.match(new RegExp('\\bhb\\s*\\/\\s*h(?:c)?t\\s*[:=]?\\s*' + N + '\\s*%?\\s*\\/\\s*' + N)))) out.hctInit = parseFloat(m[2]);
-        else if ((m = s.match(new RegExp('\\b(?:hct|hematokrit|ht)\\s*[:=]?\\s*' + N + '(?![\\d.]|\\s*cm)')))) out.hctInit = parseFloat(m[1]);
-        if (out.hctInit !== undefined && (out.hctInit < 10 || out.hctInit > 75)) delete out.hctInit;
-
-        // Fasting: "Puasa ... 8 jam" preferred, else first "N jam"
-        if ((m = s.match(new RegExp('\\bpuasa[^\\n]{0,60}?' + N + '\\s*(?:jam|hours?|hrs?)\\b')))) out.ppHours = parseFloat(m[1]);
-        else if ((m = s.match(new RegExp('\\b(?:puasa|pp)\\s*[:=]?\\s*' + N)))) out.ppHours = parseFloat(m[1]);
-        else if ((m = s.match(new RegExp(N + '\\s*(?:jam|hours?|hrs?)\\b')))) out.ppHours = parseFloat(m[1]);
-
-        return out;
-    }
-
-    function onQuickInput() {
-        const parsed = parsePatientText($('quickInput').value);
-        const chips = [];
-        const set = (id, v) => { $(id).value = v; $(id).classList.remove('flash'); void $(id).offsetWidth; $(id).classList.add('flash'); };
-
-        if (parsed.weight !== undefined) { set('weight', +parsed.weight.toFixed(2)); chips.push(`BB ${+parsed.weight.toFixed(2)} kg`); }
-        if (parsed.height !== undefined) { set('height', parsed.height); chips.push(`TB ${parsed.height} cm`); }
-        if (parsed.ageYear !== undefined) {
-            set('ageYear', parsed.ageYear); set('ageMonth', parsed.ageMonth);
-            chips.push(`Usia ${parsed.ageYear} th ${parsed.ageMonth} bln`);
-        }
-        if (parsed.gender) { $('gender').value = parsed.gender; chips.push(parsed.gender === 'male' ? 'Laki-laki' : 'Perempuan'); }
-        if (parsed.hctInit !== undefined) { set('hctInit', parsed.hctInit); chips.push(`Hct ${parsed.hctInit}%`); }
-        if (parsed.ppHours !== undefined) { set('ppHours', parsed.ppHours); chips.push(`Puasa ${parsed.ppHours} jam`); }
-
-        $('quickChips').innerHTML = (chips.length
-            ? chips.map(c => `<span class="chip">✓ ${c}</span>`).join('')
-            : '<span class="chip none">Belum ada data terbaca</span>')
-            + (parsed.multi ? `<span class="chip warn">⚠ ${parsed.multi} pasien terdeteksi, hanya pasien pertama dipakai</span>` : '');
-        if (chips.length) userEdit(); else calculate();
-    }
-
-    function clearQuick() {
-        $('quickInput').value = '';
-        $('quickChips').innerHTML = '<span class="chip none">Belum ada data terbaca</span>';
-    }
+    // Paste box + parser live in shared.js (QuickFill / ClinicalParser), shared with the other clinical tabs.
 
     // ---------- SHARED PATIENT ----------
     function userEdit() {
-        if (window.PatientStore) {
-            PatientStore.set({
-                weight: num('weight'), height: num('height'),
-                ageYear: num('ageYear'), ageMonth: num('ageMonth'),
-                gender: $('gender').value
-            });
-        }
+        PatientStore.set({
+            weight: num('weight'), height: num('height'),
+            ageYear: num('ageYear'), ageMonth: num('ageMonth'),
+            gender: $('gender').value,
+            hctInit: num('hctInit'), ppHours: num('ppHours')
+        });
         calculate();
     }
 
+    // Fill the inputs from the shared patient record (paste in any tab, or edits in another tab)
     function applyPatient(p) {
         if (!p) return;
-        if (isFinite(p.weight)) $('weight').value = p.weight;
-        if (isFinite(p.height)) $('height').value = p.height;
-        if (isFinite(p.ageYear)) $('ageYear').value = p.ageYear;
-        if (isFinite(p.ageMonth)) $('ageMonth').value = p.ageMonth;
+        ['weight', 'height', 'ageYear', 'ageMonth', 'hctInit', 'ppHours'].forEach(k => QuickFill.setField(k, p[k]));
         if (p.gender) $('gender').value = p.gender;
         calculate();
     }
@@ -609,13 +482,20 @@
         const ebv = weight * ebvF;
         $('resEBV').innerText = fmt(ebv) + " cc";
 
+        // MABL = EBV × (Hct awal − Hct target) / Hct awal, target Hct = Hb × 3
+        const ablRow = (label, value) => `<div class="result-row"><span class="result-label">${label}</span><span class="result-value">${value}</span></div>`;
         let ablHtml = "";
         if (isFinite(hctInit) && hctInit > 0) {
-            [30, 27, 24, 21].forEach(t => {
+            [10, 9, 8, 7, 6, 5].forEach(hb => {
+                const t = hb * 3;
                 const vol = hctInit > t ? (ebv * (hctInit - t)) / hctInit : 0;
-                ablHtml += `<div class="result-row"><span class="result-label">Hct ${t}%</span><span class="result-value">${fmt(vol)} cc</span></div>`;
+                ablHtml += ablRow(`Hb ${hb} = ${t}% hct`, `${fmt(vol)} ml`);
             });
+            ablHtml += '<div style="height:10px"></div>';
         }
+        // Estimated blood loss as % of EBV
+        ablHtml += ablRow('EBL 15%', `${fmt(ebv * 0.15)} ml`);
+        ablHtml += ablRow('EBL 30%', `${fmt(ebv * 0.30)} ml`);
         $('ablSection').innerHTML = ablHtml;
 
         // Fluids: 4-2-1 on top, 2 cc/kg below
@@ -649,7 +529,13 @@
             const val = lo === hi ? f(lo) : `${f(lo)} - ${f(hi)}`;
             const capped = m.max && m.hi * weight > m.max;
             const label = `${m.n} (${m.d}/kg${m.max ? ', max ' + m.maxLabel : ''})`;
-            return `<div class="result-row"><span class="result-label">${label}</span><span class="result-value">${val} ${m.u}${capped ? ' <span class="cap-note">(capped at max)</span>' : ''}</span></div>`;
+            // Small PBW-based dose underneath (same rule as VT/MV: adult with TB filled)
+            let pbwLine = '';
+            if (usePBW) {
+                const plo = cap(m.lo * pbw), phi = cap(m.hi * pbw);
+                pbwLine = `<span class="pbw-dose">PBW ${fmt(pbw, 1)} kg: ${plo === phi ? f(plo) : `${f(plo)} - ${f(phi)}`} ${m.u}</span>`;
+            }
+            return `<div class="result-row"><span class="result-label">${label}</span><span class="result-value"><span>${val} ${m.u}${capped ? ' <span class="cap-note">(capped at max)</span>' : ''}</span>${pbwLine}</span></div>`;
         }).join('');
 
         // Emergency with max caps
@@ -674,10 +560,9 @@
     }
 
     window.addEventListener('load', () => {
-        if (window.PatientStore) {
-            applyPatient(PatientStore.get());
-            PatientStore.onChange(applyPatient);
-        }
+        QuickFill.mount($('quickFill'), { onPaste: applyPatient });
+        applyPatient(PatientStore.get());
+        PatientStore.onChange(applyPatient);
         calculate();
     });
 </script>

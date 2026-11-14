@@ -197,6 +197,7 @@
   <div class="static-header">CONTINUOUS INFUSION CALCULATOR</div>
 
   <div id="vasoWrapper">
+      <div id="quickFill"></div>
       <div class="input-group">
           <div class="input-wrapper">
               <label>Nama Pasien</label>
@@ -422,16 +423,19 @@
       calculateVaso();
   }
 
+  // Fill the inputs from the shared patient record (paste in any tab, or edits in another tab)
   function applyPatient(p) {
       if (!p) return;
-      if (isFinite(p.weight)) document.getElementById('vpWeight').value = p.weight;
-      if (isFinite(p.height)) document.getElementById('vpHeight').value = p.height;
-      if (isFinite(p.ageYear)) document.getElementById('vpAge').value = p.ageYear;
+      QuickFill.setField('vpWeight', p.weight);
+      QuickFill.setField('vpHeight', p.height);
+      QuickFill.setField('vpAge', p.ageYear);
       calculateVaso();
   }
 
   // Init
-  if (window.PatientStore) { applyPatient(PatientStore.get()); PatientStore.onChange(applyPatient); }
+  QuickFill.mount(document.getElementById('quickFill'), { onPaste: applyPatient });
+  applyPatient(PatientStore.get());
+  PatientStore.onChange(applyPatient);
   calculateVaso();
 </script>
 
